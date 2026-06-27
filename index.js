@@ -1,16 +1,21 @@
 import http from "http"
+import { App } from "./class.js"
+
+const app = new App()
+
+app.regitrarRuta("/", inicio, "GET")
+app.regitrarRuta("/productos", productos, "GET")
+app.regitrarRuta("/usuarios", usuarios, "GET")
 
 const server = http.createServer((req, res)=> {
-    res.writeHead(200, {'Content-type': 'text-plain',
-        'X-Powered-By': 'node.js'
-    })
-    // Acá podemos desestructurar el objeto req, que cuenta con las propiedades url y method. También podríamos hacer algo como
-    // url = req.url
-    // method = req.method,
-    // pero la desestructuración nos ahorra líneas de código. 
-    const { url, method, headers } = req
-    
-    res.end(`Hiciste una request ${method} en la URL ${url}`)
+    const handler = app.verificarRuta(req.url, req.method)
+    if (handler) {
+        res.writeHead(200)
+        handler(req, res)
+    } else {
+        res.writeHead(404)
+        res.end("Ruta no encontrada.")
+    }
 })
 
 server.listen(3000, () => {
