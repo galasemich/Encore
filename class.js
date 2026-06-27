@@ -1,7 +1,5 @@
 import http from "http"
 
-const puerto = 3000
-
 class App {
     // Definimos el objeto donde se van a guardar las rutas.
     constructor() {
@@ -30,7 +28,7 @@ class App {
             }
         })
 
-        servidor.listen(puerto, () => {console.log(`Servidor corriendo en ${puerto}.`)})
+        servidor.listen(puerto, callback)
     }
 
     // Definimos una función que verifica si la ruta existe con método. 
