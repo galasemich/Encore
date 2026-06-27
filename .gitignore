@@ -1,1 +1,4 @@
 .env
+node_modules
+mini_framework_node_guide.md
+res.txt
