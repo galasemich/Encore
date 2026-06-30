@@ -1,10 +1,13 @@
 import http from "http"
 import { App } from "./class.js"
+import handlers from "./handlers.js"
 
 const app = new App()
-app.levantarServidor()
-// app.regitrarRuta("/", inicio, "GET")
-// app.regitrarRuta("/productos", productos, "GET")
-// app.regitrarRuta("/usuarios", usuarios, "GET")
 
-// app.listen(puerto, () => {`Servidor corriendo en ${puerto}.`})
+app.registrarRuta("/", handlers.inicio, "GET")
+app.registrarRuta("/tareas", handlers.traerTareas, "GET")
+app.registrarRuta("/usuarios", handlers.traerUsuarios, "GET")
+app.registrarRuta("/tarea", handlers.nuevaTarea, "POST")
+
+app.levantarServidor()
+
