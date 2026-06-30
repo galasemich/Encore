@@ -8,12 +8,13 @@
 2. [Segunda etapa. Creando nuestra clase principal](#segunda-etapa-creando-nuestra-clase-principal)
 3. [Tercera etapa. Implementando un enrutador simple](#tercera-etapa-implementando-un-enrutador-simple)
     - [Definiendo endpoints](#definiendo-endpoints)
+    - [Definiendo handlers](#definiendo-handlers)
+    - [Implementando el enrutador](#implementando-el-enrutador)
 4. [Cuarta etapa. Middlewares](#cuarta-etapa-middlewares)
 5. [Quinta etapa. Leyendo el body de una request](#quinta-etapa-leyendo-el-body-de-una-request)
 6. [Sexta etapa. Rutas dinámicas y más métodos HTTP](#sexta-etapa-rutas-dinámicas-y-más-métodos-http)
 7. [Séptima etapa. Publicando Encore en npm](#séptima-etapa-publicando-encore-en-npm)
 
----
 ## Introducción. ¿Por qué Encore?
 Habitualmente, cuando desarrollamos aplicaciones backend, utilizando algún módulo como Express.js o Nest.js. ¿Podríamos desarrollar backend con el módulo nativo de Node.js? Sí, claro, pero una librería como Express tiene muchas otras funcionalidades y además nos ahorran trabajo. 
 
@@ -31,7 +32,6 @@ Esta documentación toma una decisión pedagógica importante que vale la pena a
 
 Al finalizar la documentación, el lector estará capacitado para, entonces, también dos cosas: desarrollar su propio framework propio y también utilizarlo para crear sus propias aplicaciones backend; y, por qué no, luego enlazarlas con un frontend y construir una aplicación web completa. 
 
----
 ## Primera etapa. Entendiendo el módulo `http`: servidores, solicitudes y respuestas
 En este proyecto usaremos como base el módulo nativo de Node `http`. Con él, podremos acceder a funciones como `createServer` para crear el servidor o `listen` para poner nuestro servidor a escuchar en un puerto. Las primeras pruebas que haremos tendrán el objetivo de entender cómo funciona el módulo; probaremos algunas operaciones sencillas para recibir solicitudes, enviar respuestas, definir status codes, etc. 
 
@@ -117,7 +117,6 @@ En resumen, entonces:
 - Headers de una **solicitud** --> podemos verlos con un `console.log(req.headers)`.  
 - Headers de una **respuesta** --> no disponibles con `console.log()`. Los vemos con un cliente externo. 
 
----
 ## Segunda etapa. Creando nuestra clase principal
 Retomemos nuestro primer ejemplo:
 ```javascript
@@ -174,7 +173,6 @@ app.levantarServidor()
 ```
 El paso a paso, vemos, es similar. Creamos una instancia del objeto App y llamamos al método que levanta el servidor. 
 
----
 ## Tercera etapa. Implementando un enrutador simple
 Terminada la segunda etapa, nuestro servidor está corriendo. Ahora, para que se acerque todavía más a lo que implica un framework backend, necesitamos implementar lo que podríamos llamar un *enrutador*. Básicamente, y en términos estrictos, un enrutador es un dispositivo que dirige datos de una red a otra. Estos dispositivos son muy comunes para conectarse a internet, por ejemplo, porque permiten interconectar la red de la empresa que provee el servicio a la red de los hogares que contratan ese servicio (por eso en todos esos hogares hay un *router*). Tendríamos algo así:
 ```mermaid
@@ -193,7 +191,7 @@ Ahora bien, ¿cómo desarrollamos esto? Ya tenemos cubierta una parte: el objeto
 ### Definiendo endpoints
 Como mencionamos en la introducción de esta documentación, vamos a hacer dos trabajos en simultáneo: vamos a **desarrollar** un framework y además **utilizarlo** para crear un servidor. Es importante hacer esta distinción porque en términos estrictos, definir endpoints no forma parte del desarrollo del *framework*; en todo caso, es parte de lo que ese framework nos *permite hacer*. Pensémoslo así: Express no "viene" con endpoints predefinidos, justamente porque un framework constituye el marco de trabajo para que nosotros los desarrolladores *construyamos* ese servidor *a partir* de ese marco de trabajo. El framework nos provee de las *condiciones de posibilidad* de todas las funcionalidades de un servidor, y nosotros lo utilizamos para construirlo. Hecha esta salvedad más bien técnica, vamos a empezar a definir endpoints de nuestro servidor. 
 
-Definir una ruta implica establecer una URL y un método HTPP. Por ejemplo, imaginemos que estamos utilizando Encore para crear una aplicación que registra tareas. Podemos tener una ruta GET `/tareas` que traiga todas las tareas registradas en nuestra aplicación; pero también podemos tener una ruta POST `/tareas` que cree una tarea nueva. En este ejemplo, el endpoint es el mismo, lo que cambia es el método HTTP. 
+Definir una ruta implica establecer una URL y un método HTTP. Por ejemplo, imaginemos que estamos utilizando Encore para crear una aplicación que registra tareas. Podemos tener una ruta GET `/tareas` que traiga todas las tareas registradas en nuestra aplicación; pero también podemos tener una ruta POST `/tareas` que cree una tarea nueva. En este ejemplo, el endpoint es el mismo, lo que cambia es el método HTTP. 
 
 Volvamos a nuestra clase `App`. Ya definimos un objeto vacío `rutas` para almacenar las rutas y un método que levanta el servidor. Ahora vamos a definir un método que registre nuestra rutas. Como dijimos anteriormente, una ruta consta de una URL, un método y una función que maneje esa ruta (en este momento de nuestra aplicación, la única función que maneja rutas es el callback del méotodo para levantar el servidor, que ya vamos a modificar). Así, tenemos que definir una función que *guarde* todos esos datos en el objeto vacío; de esta manera tenemos algo sobre lo que una posterior función verificadora (nuestro enrutador) efectivemente trabaje para manejar las solicitudes. Veamos este ejemplo:
 ```javascript
@@ -206,6 +204,8 @@ registrarRuta(ruta, handler, metodo) {
     }
 ```
 Esta función define tres parámetros: `ruta`, `handler` y `metodo`. Básicamente, son los tres datos con los que vamos a registrar el endpoint en nuestro objeto de rutas. Los tres datos son fundamentales porque, como ya mencionamos en otra oportunidad, podemos tener en nuestro servidor dos rutas "iguales" (misma URL, por ejemplo `/tareas`) pero con diferente método HTTP (por ejemplo, GET y POST). Así, en nuestro objeto rutas los dos endpoints serán dos datos diferentes. 
+
+> Importante: por el momento no vamos a definir los handlers específicamente. Por ahora, solo es importante saber que el servidor ejecutará una función correspondiente a cada ruta, por eso es necesario guardar ese dato. En el próximo apartado nos ocuparemos de ello. 
 
 El cuerpo de la función define una condición que es la que efectivamente *guarda* la ruta en el objeto `rutas`. Veamos el paso a paso. 
 1. Filtra primero por método, dado que intenta buscar en el objeto algo como
@@ -220,7 +220,7 @@ El cuerpo de la función define una condición que es la que efectivamente *guar
 {
     "GET": 
     {
-        "/tareas": traerTareas()
+        "/tareas": traerTareas
     }
 }
 ```
@@ -229,14 +229,135 @@ La idea del paso 1 es que, si luego hay que registrar otra ruta con el método G
 {
     "GET": 
     {
-        "/tareas": traerTareas()
+        "/tareas": traerTareas
     }, 
     {
-        "/usuarios": traerUsuarios()
+        "/usuarios": traerUsuarios
     }
 }
 ```
-De esta manera, vamos organizando las funciones a partir de su método HTTP. 
+De esta manera, vamos organizando las funciones a partir de su método HTTP. Recordemos que, al guardar las rutas, no guardamos la función en sí, sino una *referencia* a ella (la diferencia está en los paréntesis).
+
+Definimos la función para registrar las rutas, pero ¿cómo las *registramos*, efectivamente? Es decir, ¿en qué momento *llamamos* a esa función? En este punto del desarrollo vamos a agregar algunas líneas de código a nuestro archivo *entry point*, es decir, nuestro `index.js`:
+
+```javascript
+...
+app.registrarRuta("/", inicio, "GET")
+app.registrarRuta("/tareas", traerTareas, "GET")
+app.registrarRuta("/usuarios", traerUsuarios, "GET")
+...
+```
+
+Luego de las importaciones necesarias y de crear nuestra objeto `app`, instancia de la clase `App`, ahora vamos a recurrir al método `registrarRuta` para registrar tres rutas. Siguiendo el ejemplo de una aplicación para registrar tareas, tendremos: 
+
+1. GET `/` --> ruta por defecto de nuestro servidor. Solo mostrará un mensaje de bienvenida. 
+2. GET `/tareas` --> ruta que lista todas las tareas registradas por un usuario. 
+3. GET `/usuarios` --> ruta que lista todos los usuarios registrados en la aplicación. 
+
+> Dado que todavía no implementamos la lectura del body de una solicitud ni el soporte para parámetros de ruta, todavía no podemos registrar rutas de tipo POST, PUT o DELETE. 
+
+De esta manera definimos las rutas que nuestro servidor aceptará, por el momento, y a las que se podrán hacer solicitudes desde un cliente externo. Ahora bien, ¿cómo hace el servidor para responder? Es decir, ¿cómo se ejecuta, efectivamente, la función que corresponde a cada ruta? Eso lo veremos en el próximo apartado. 
+
+### Definiendo handlers
+En el apartado anterior pusimos como ejemplo tres funciones: `inicio`, `traerUsuarios`, `traerTareas`. Estas tres funciones son las que van a responder cuando nuestro servidor reciba solicitudes a alguno de estos tres endpoints que ya definimos en nuestro objeto `rutas` dentro de la clase `App`. 
+
+Ahora bien, también es necesario verificar, de alguna manera, que las rutas que están recibiendo solicitudes efectivamente *existen* en nuestro objeto de rutas. ¿Cómo hacemos eso? Implementando lo que vamos a llamar una *función verificadora*. 
+
+Dentro de `App`, vamos a definir este método:
+```javascript
+verificarRuta(ruta, metodo) {
+    if (!this.rutas[metodo]) {
+        return false
+    } else {
+        return this.rutas[metodo][ruta]
+    }
+}
+```
+¿Cómo funciona? Básicamente, este es un método sencillo que recibe dos parámetros, la ruta y el método de la solicitud (ya veremos luego cómo hacemos para acceder a esos datos). Establecemos una condición: intentamos buscar esos datos dentro de nuestro objeto `rutas` y, si lo encontramos, devolvemos el *handler* asociado a la ruta. Si no lo encontramos, significa que la ruta solicitada no existe, entonces devolvemos `false`.
+
+Ahora: ¿dónde llamamos a esta función? En algún lugar en donde tengamos acceso a los objetos `req` y `res`, para poder acceder a `req.method` y `req.url` y pasarlos como argumentos. ¿Cuál es ese lugar? En nuestro método `levantarServidor`. Veamos cómo queda la función completa, con el agregado de la verificación de la ruta: 
+```javascript
+levantarServidor() {
+    const servidor = http.createServer((req, res) => {
+        const handler = this.verificarRuta(req.url, req.method)
+        if (handler) {
+            res.writeHead(200)
+            handler(req, res)
+        } else {
+            res.writeHead(404)
+            res.end("Ruta no encontrada.")
+        }
+    })
+    
+    servidor.listen(puerto, () => {console.log(`Servidor corriendo en ${puerto}.`)})
+}
+```
+Repasemos el código.
+1. El servidor está definido con `createServer`.  
+2. Ahora, el agregado es el siguiente: llamamos a la función `verificarRuta` y le pasamos dos argumentos, `req.url` y `req.method` que son, como sus nombres lo indican, las dos propiedades de la solicitud que necesita la función verificadora. 
+3. Si la función verificadora encontró en el objeto de rutas un objeto que combine la ruta y el método que le pasamos, devuelve la función asociada a esa combinación de ruta y método. En ese caso, enviamos un código de status 200 y llamamos a ese handler. 
+4. Si no lo encuentra, devuelve un error 404. 
+
+🧠 ¿Por qué estamos pasando el objeto `req` ahora, si no parece ser necesario? Nuestro servidor, por el momento, no acepta rutas dinámicas ni lee el body de las requests, pero más adelante lo hará, y en esos casos necesitaremos sí o sí el objeto `req`; es mejor pasarlo desde el inicio y luego usarlo sin problemas, que tener que modificar el código luego. 
+
+Si bien nuestro servidor avanzó considerablemente, todavía no funciona bien. ¿Por qué? Porque todavía no definimos esas cuatro funciones que mencionamos anteriormente. Vamos paso a paso. 
+
+1. En primer lugar vamos a definir algunos datos de ejemplo para poder devolverlos cuando recibamos solicitudes. Como este es un caso de prueba, para mostrar el funcionamiento del framework, vamos a optar por hardcodear algunos arreglos en un archivo `data.js` y luego importarlo en otros archivos. Por supuesto, en entornos reales esto no se hace así y es necesario guardar los datos típicamente en una base de datos. Por el momento nos conformamos con escribir, entonces, un pequeño archivo `data.js` que contenga estos datos:
+```javascript
+const usuarios = [
+    {nombreUsuario: "galapha", email: "gala@mail.com"},
+    {nombreUsuario: "juanp", email: "juanp@mail.com"},
+    {nombreUsuario: "mariag", email: "mariag@mail.com"}
+]
+
+const tareas = [
+    {nombre: "Hacer la compra", categoria: "Urgente", usuario: "galapha"},
+    {nombre: "Arreglar calefón", categoria: "Puede esperar", usuario: "juanp"},
+    {nombre: "Terminar monografía", categoria: "Urgente", usuario: "mariag"}
+]
+
+export { usuarios, tareas }
+```
+La idea, entonces, es que cuando el cliente haga un GET a `/usuarios` nuestro servidor responda con la lista de usuarios. Lo mismo ocurrirá con el endpoint `/tareas`, pero con la lista `tareas`. 
+
+2. En segundo lugar, vamos a definir tres funciones sencillas que respondan a cada uno de los endpoints. Es decir, vamos a finalmente definir los *handlers* de estas rutas: 
+```javascript
+import { usuarios, tareas } from "./data.js"
+
+function traerUsuarios(req, res) {
+    res.writeHead(200, {
+        "Content-type": "application/json"
+    })
+    res.end(JSON.stringify(usuarios, null, 2))
+}
+
+function traerTareas(req, res) {
+    res.writeHead(200, {
+        "Content-type": "application/json"
+    })
+    res.end(JSON.stringify(tareas, null, 2))
+}
+
+function inicio(req, res) {
+    res.writeHead(200, {
+        "Content-type": "application/json"
+    })
+    res.end(JSON.stringify({mensaje: "Bienvenidos a mi servidor creado con Encore."}), null, 2)
+}
+
+export default { traerTareas, traerUsuarios, inicio }
+```
+
+La implementación es muy sencilla, pero nos permite tener nuestro servidor andando y que cada ruta "haga algo diferente" y no enviar solamente un "Hola, mundo." como hacía anteriormente. Cada función tiene una tarea: `traerUsuarios` devuelve la lista de usuarios, `traerTareas` la lista de tareas e `inicio` manda un mensaje de bienvenida. Notemos que no podemos simplemente hacer un `res.end(usuarios)`, dado que `res.end()`admite típicamente strings (o buffers). Para eso usaremos la función nativa de JavaScript que nos permite convertir un objeto a un string con formato JSON. `La función JSON.stringify()` acepta tres parámetros: el objeto a convertir, un *replacer*, que altera el comportamiento del proceso de conversión (que aquí definimos como `null` porque no es relevante en este contexto) y un número o string que representa la indentación que queremos darle a la cadena final. 
+
+También es importante notar que, en estas funciones, definimos un header `Content-type`. ¿Por qué es importante esto? Porque, en realidad, nosotros desde el servidor no enviamos JSON "puro", sino que enviamos algo parecido que el cliente puede interpretar como JSON. Cuando el cliente lee el header de Content-type, puede parsear el contenido de la respuesta con algo como JSON.parse() e interpretar los datos en ese formato. Cuando en Express hacemos algo como
+```javascript
+res.json(usuarios)
+```
+la idea es la misma: Express setea el header a `Content-type: application/json` y procesa la información con `JSON.stringify()` para que el cliente que recibe la solicitud pueda parsear esa información como JSON. La única diferencia es que acá lo estamos haciendo manualmente, para entender qué es lo que está pasando internamente. 
+
+🧠 Nota sobre Single Responsibily Principle
+// explicar cómo express usa este principio que da como resultado lo de Router, que es basicamente una clase distinta a Express (una crea el conjunto de rutas y el otro crea la aplicación). en nuestra app ahora tenemos todo junto poque es algo sencillo, pero se puede hacer la aclaración para demostrar que se entiende por qué Express funciona así.
 ## Cuarta etapa. Middlewares
 
 ## Quinta etapa. Leyendo el body de una request
