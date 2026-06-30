@@ -1,18 +1,19 @@
 ## Índice de Contenidos
-- [Introducción. ¿Por qué Encore?](###introducción-por-qué-encore)
-- [Primera etapa. Entendiendo el módulo `http`: servidores, solicitudes y respuestas](###primera-etapa-entendiendo-el-módulo-http-servidores-solicitudes-y-respuestas)
-    - [Sobre `createServer`](####sobre-createserver)
-    - [Observando una request](####observando-una-request)
-    - [Observando una response](####observando-una-response)
-    - [Analizando encabezados de una solicitud y de una respuesta](###analizando-encabezados-de-una-solicitud-y-de-una-respuesta)
-- [Segunda etapa. Creando nuestra clase principal](###segunda-etapa-creando-nuestra-clase-principal)
-- [Tercera etapa. Implementando un enrutador simple](###tercera-etapa-implementando-un-enrutador-simple)
-- [Cuarta etapa. Middlewares](###cuarta-etapa-middlewares)
-- [Quinta etapa. Leyendo el body de una request](###quinta-etapa-leyendo-el-body-de-una-request)
-- [Sexta etapa. Rutas dinámicas y más métodos HTTP](###sexta-etapa-rutas-dinámicas-y-más-métodos-http)
-- [Séptima etapa. Publicando Encore en npm](###séptima-etapa-publicando-encore-en-npm)
+0. [Introducción. ¿Por qué Encore?](#introducción-por-qué-encore)
+1. [Primera etapa. Entendiendo el módulo `http`: servidores, solicitudes y respuestas](#primera-etapa-entendiendo-el-módulo-http-servidores-solicitudes-y-respuestas)
+    - [Sobre `createServer`](#sobre-createserver)
+    - [Observando una request](#observando-una-request)
+    - [Observando una response](#observando-una-response)
+    - [Analizando encabezados de una solicitud y de una respuesta](#analizando-encabezados-de-una-solicitud-y-de-una-respuesta)
+2. [Segunda etapa. Creando nuestra clase principal](#segunda-etapa-creando-nuestra-clase-principal)
+3. [Tercera etapa. Implementando un enrutador simple](#tercera-etapa-implementando-un-enrutador-simple)
+4. [Cuarta etapa. Middlewares](#cuarta-etapa-middlewares)
+5. [Quinta etapa. Leyendo el body de una request](#quinta-etapa-leyendo-el-body-de-una-request)
+6. [Sexta etapa. Rutas dinámicas y más métodos HTTP](#sexta-etapa-rutas-dinámicas-y-más-métodos-http)
+7. [Séptima etapa. Publicando Encore en npm](#séptima-etapa-publicando-encore-en-npm)
 
-### 🔎 Intruducción. ¿Por qué Encore?
+---
+## Introducción. ¿Por qué Encore?
 Habitualmente, cuando desarrollamos aplicaciones backend, utilizando algún módulo como Express.js o Nest.js. ¿Podríamos desarrollar backend con el módulo nativo de Node.js? Sí, claro, pero una librería como Express tiene muchas otras funcionalidades y además nos ahorran trabajo. 
 
 Ahora bien, ¿qué pasa en el "detrás de escena" cuando hacemos algo como esto?
@@ -25,10 +26,11 @@ const app = express()
 
 Para entender qué está pasando acá, *desarrollar un pequeño framework*, es decir, desarrollar algo como Express, es una muy buena opción. Se trata de un ejercicio interesante porque nos obliga a pensar funcionalidades que en módulos como Express o Nest ya están perfectamente implementadas. No se trata de "reiventar la rueda" sino de analizar el detrás de escena para entender mejor qué está pasando cuando utilizamos una librería. Esta idea es comparable, un poco, a la diferencia entre saber **manejar** y saber **cómo funciona un auto**. Por supuesto que, en la mayoría de los casos, entender cómo manejar es suficiente. Pero si queremos ir más allá, nos esperan otros desafíos: podemos saber cómo hacer un cambio (análogamente, podemos saber cómo levantar un servidor en Express), pero entender *cómo funciona* la maquinaria para que el cambio se produzca efectivamente (por ejemplo, cómo se mapean las rutas, siguiendo nuestra analogía) nos aporta un tipo de conocimiento diferente y muy valioso. Por supuesto, si vamos "para atrás" en los niveles de abstracción, podríamos preguntarnos cómo funciona el módulo `http`, cómo funciona Node, cómo está desarrollado el propio JavaScript... Esos niveles de abstracción son fascinantes pero escapan al objetivo de este proyecto. 
 
-### 1️⃣ Primera etapa. Entendiendo el módulo `http`: servidores, solicitudes y respuestas
+---
+## Primera etapa. Entendiendo el módulo `http`: servidores, solicitudes y respuestas
 En este proyecto usaremos como base el módulo nativo de Node `http`. Con él, podremos acceder a funciones como `createServer` para crear el servidor o `listen` para poner nuestro servidor a escuchar en un puerto. Las primeras pruebas que haremos tendrán el objetivo de entender cómo funciona el módulo; probaremos algunas operaciones sencillas para recibir solicitudes, enviar respuestas, definir status codes, etc. 
 
-#### Sobre `createServer`
+### Sobre `createServer`
 Veamos este ejemplo de código:
 ```javascript
 import http from "http"
@@ -53,7 +55,7 @@ La función `createServer` toma como parámetro una función callback que a su v
 
 🧠 Para seguir pensando: ¿cómo se implementa esa "llegada" de una solicitud al servidor? Es decir, ¿cómo reconoce nuestro servidor que está llegando una request, y que debe responder con lo que escribimos en el cuerpo de la función callback? Eso nos lleva directamente al corazón de la implementación de Node, y de todo JavaScript: el concepto de *evento*. En términos simples: una solicitud se agrega a una *cola de eventos* cuando llega al servidor. En ese momento, Node recibe un aviso y ejecuta el callback. 
 
-#### Observando una request
+### Observando una request
 Dentro de la función `createServer`, podemos escribir algo como esto:
 ```javascript
 ...
@@ -65,7 +67,7 @@ Cuando accedemos a `localhost:3000` en el navegador, vemos que en la terminal ob
 
 Tanto `method` como `url` son propiedades del objeto `req` que podemos rastrear, incluso, si hacemos un `console.log(req)`. Allí, entre muchos otros datos, veremos que `method` y `url` son dos clave dentro del objeto `req`. Es interesante ver que otras propiedades, como `headers`, a la que también accedemos con `req.headers`, no son claves "simples" como `method` y `url`. En cambio, Node las implemente a partir de un símbolo, un tipo de dato especial para crear identificadores únicos. En el objeto `req`, veremos algo como `Symbol[kHeaders]`, que Node mapea con la propiedad `req.headers` y nos permite ver los encabezados de la request. 
 
-#### Observando una response
+### Observando una response
 Similar a las operaciones que estuvimos analizando a propósito de una solicitud, también podemos observar algunas propiedades de las respuestas que da nuestro servidor. Veamos este ejemplo, retomando nuestra definición del servidor:
 ```javascript
 ...
@@ -82,7 +84,7 @@ Los status code son fundamentales porque "hablan" por nosostros. Forman parte de
 
 El método `res.end` envía el body de la respuesta. En este caso, simplemente enviamos un string en pantalla. `res.end` solo puede llamarse una vez; si quisiéramos escribir más mensajes, tendríamos que usar el método `res.write`, que sí puede ser llamado cuantas veces querramos. 
 
-#### Analizando encabezados de una solicitud y de una respuesta
+### Analizando encabezados de una solicitud y de una respuesta
 Para acceder a los encabezados de una **respuesta** tenemos dos opciones:
 
 1. Podemos usar un cliente como Thunder Client o Postman y acceder a los encabezados en la pestaña Headers del apartado de la respuesta. 
@@ -110,7 +112,8 @@ En resumen, entonces:
 - Headers de una **solicitud** --> podemos verlos con un `console.log(req.headers)`.  
 - Headers de una **respuesta** --> no disponibles con `console.log()`. Los vemos con un cliente externo. 
 
-### 2️⃣ Segunda etapa. Creando nuestra clase principal
+---
+## Segunda etapa. Creando nuestra clase principal
 Retomemos nuestro primer ejemplo:
 ```javascript
 import express from "express"
@@ -166,18 +169,19 @@ app.levantarServidor()
 ```
 El paso a paso, vemos, es similar. Creamos una instancia del objeto App y llamamos al método que levanta el servidor. 
 
-### 3️⃣ Tercera etapa. Implementando un enrutador simple
+---
+## Tercera etapa. Implementando un enrutador simple
 Terminada la segunda etapa, nuestro servidor está corriendo. Ahora, para que se acerque todavía más a lo que implica un framework backend, necesitamos implementar lo que podríamos llamar un *enrutador*. Básicamente, y en términos estrictos, un enrutador es un dispositivo que dirige datos de una red a otra. Estos dispositivos son muy comunes para conectarse a internet, por ejemplo, porque permiten interconectar la red de la empresa que provee el servicio a la red de los hogares que contratan ese servicio (por eso en todos esos hogares hay un *router*). Tendríamos algo así:
 ```mermaid
 graph LR
  A[empresa de internet] <--> |datos| B[router] <--> |datos| C[hogar]
 ```
 
-### 4️⃣ Cuarta etapa. Middlewares
+## Cuarta etapa. Middlewares
 
-### 5️⃣ Quinta etapa. Leyendo el body de una request
+## Quinta etapa. Leyendo el body de una request
 
-### 6️⃣ Sexta etapa. Rutas dinámicas y más métodos HTTP
+## Sexta etapa. Rutas dinámicas y más métodos HTTP
 
-### 7️⃣ Séptima etapa. Publicando Encore en npm
+## Séptima etapa. Publicando Encore en npm
 
