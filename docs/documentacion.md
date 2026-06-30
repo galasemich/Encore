@@ -1,4 +1,18 @@
-### Intruducción. ¿Por qué Encore?
+## Índice de Contenidos
+- [Introducción. ¿Por qué Encore?](###introducción-por-qué-encore)
+- [Primera etapa. Entendiendo el módulo `http`: servidores, solicitudes y respuestas](###primera-etapa-entendiendo-el-módulo-http-servidores-solicitudes-y-respuestas)
+    - [Sobre `createServer`](####sobre-createserver)
+    - [Observando una request](####observando-una-request)
+    - [Observando una response](####observando-una-response)
+    - [Analizando encabezados de una solicitud y de una respuesta](###analizando-encabezados-de-una-solicitud-y-de-una-respuesta)
+- [Segunda etapa. Creando nuestra clase principal](###segunda-etapa-creando-nuestra-clase-principal)
+- [Tercera etapa. Implementando un enrutador simple](###tercera-etapa-implementando-un-enrutador-simple)
+- [Cuarta etapa. Middlewares](###cuarta-etapa-middlewares)
+- [Quinta etapa. Leyendo el body de una request](###quinta-etapa-leyendo-el-body-de-una-request)
+- [Sexta etapa. Rutas dinámicas y más métodos HTTP](###sexta-etapa-rutas-dinámicas-y-más-métodos-http)
+- [Séptima etapa. Publicando Encore en npm](###séptima-etapa-publicando-encore-en-npm)
+
+### 🔎 Intruducción. ¿Por qué Encore?
 Habitualmente, cuando desarrollamos aplicaciones backend, utilizando algún módulo como Express.js o Nest.js. ¿Podríamos desarrollar backend con el módulo nativo de Node.js? Sí, claro, pero una librería como Express tiene muchas otras funcionalidades y además nos ahorran trabajo. 
 
 Ahora bien, ¿qué pasa en el "detrás de escena" cuando hacemos algo como esto?
