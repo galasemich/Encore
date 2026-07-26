@@ -5,6 +5,7 @@ class App {
     // Definimos el objeto donde se van a guardar las rutas.
     constructor() {
         this.rutas = {}
+        this.middlewares = []
     }
 
     // Definimos una función que guarda la ruta en el ojeto de rutas, sea cual sea el método.
@@ -18,13 +19,17 @@ class App {
 
     levantarServidor() {
         const servidor = http.createServer((req, res) => {
-            const handler = this.verificarRuta(req.url, req.method)
-            if (handler) {
-                handler(req, res)
-            } else {
-                res.writeHead(404)
-                res.end(JSON.stringify({mensaje: "Ruta no encontrada."}), null, 2)
+            const callback = () => {
+                const handler = this.verificarRuta(req.url, req.method)
+                if (handler) {
+                    handler(req, res)
+                } else {
+                    res.writeHead(404)
+                    res.end(JSON.stringify({mensaje: "Ruta no encontrada."}), null, 2)
+                }
             }
+
+            this.ejecutarMiddleware(req, res, 0, callback)
         })
         
         servidor.listen(puerto, () => {console.log(`Servidor corriendo en ${puerto}.`)})
@@ -37,6 +42,24 @@ class App {
         } else {
             return this.rutas[metodo][ruta]
         }
+    }
+
+    use(funcion) {
+        this.middlewares.push(funcion)
+    }
+
+    ejecutarMiddleware(req, res, index, callback) {
+        if (index === this.middlewares.length) {
+            callback()
+            return
+        }
+
+        const middlewareAEjecutar = this.middlewares[index]
+        const next = () => {
+            this.ejecutarMiddleware(req, res, index + 1, callback)
+        }
+
+        middlewareAEjecutar(req, res, next)
     }
 }
 

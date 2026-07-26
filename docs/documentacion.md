@@ -378,7 +378,7 @@ Básicamente, la idea es que con el método `use`, definido en la clase Express,
 
 Ahora bien, en Encore, tanto la responsabilidad de levantar el servidor como de enrutar recaen en la clase `App`. Esto no es problemático porque Encore se trata de un *framework* minimalista, pero sí es cierto que en futuras versiones sería algo a tener en cuenta para mejorar el trabajo y hacerlo más modular, un concepto fundamental en programación que hace mucho más mantenibles los programas y permite escalarlos mucho más fácilmente. ¿Cómo podríamos, entonces, implementar esto en una hipotética segunda versión de Encore?
 
-1. Definiríamos una clase Router, algo así:
+1. Definiríamos una clase `Router`, algo así:
 ```javascript
 class Router {
     constructor() {
@@ -386,7 +386,7 @@ class Router {
     }
 }
 ```
-2. Luego, definiríamos las rutas en un archivo separado al index.js, así:
+2. Luego, definiríamos las rutas en un archivo separado al `index.js`, así:
 ```javascript
 const rutasUsuarios = new Router()
 
@@ -396,19 +396,26 @@ rutasUsuarios.registrarRuta("/tareas", traerTareas)
 export { rutasUsuarios }
 ```
 La idea de la modularidad es que los métodos de enrutamiento estén definidas en el objeto `Router`, no en el objeto `App`. 
-3. Ahora bien, ¿cómo hace nuestro servidor para verificar que las rutas existen, si en realidad estamos agregando las rutas registradas al objeto vacío de cada objeto Router? Tendríamos que implementar algo que *conecte* ambos objetos, el de cada grupo de rutas con el objeto de rutas general. Podríamos definir un método use en App (como hace Express) para pasar las rutas del objeto propio al objeto rutas de App, algo así:
+3. Ahora bien, ¿cómo hace nuestro servidor para verificar que las rutas existen, si en realidad estamos agregando las rutas registradas al objeto vacío de cada objeto Router? Tendríamos que implementar algo que *conecte* ambos objetos, el de cada grupo de rutas con el objeto de rutas general. Podríamos definir un método `use` en `App` (como hace Express) para pasar las rutas del objeto propio al objeto rutas de App, algo así:
 ```javascript
 app.use(rutaProductos)
 ```
-4. Dentro de App, el método use usaría el método Object.assign() para combinar los dos objetos. Así, el servidor "busca" las rutas en el objeto rutas de App, que contiene ahora todas las rutas. 
+4. Dentro de App, el método `use` usaría el método `Object.assign()` para combinar los dos objetos. Así, el servidor "busca" las rutas en el objeto rutas de `App`, que contiene ahora todas las rutas. 
 
-> Nota sobre la arquitectura de la aplicación. En lo que venimos describiendo, App debería importar la función registrarRuta, dado que esta "vive" en Router, no en App. Podríamos pensar en que esto "rompería" el principio de modularidad, pero no es tan así si pensamos en la dirección en la que se produce la importación: App, clase más "general" del framework, importa de Router, y no al revés. No es que verificarRuta "vive" en App, sino que App la importa porque la necesita. 
+> Nota sobre la arquitectura de la aplicación. En lo que venimos describiendo, App debería importar la función `registrarRuta`, dado que esta "vive" en Router, no en `App`. Podríamos pensar en que esto "rompería" el principio de modularidad, pero no es tan así si pensamos en la dirección en la que se produce la importación: `App`, clase más "general" del framework, importa de Router, y no al revés. No es que `verificarRuta` "vive" en `App`, sino que `App` la importa porque la necesita. 
 
 En resumen:
-- Clase App --> construye un objeto vacío "general" para todas las rutas de la aplicación y levanta el servidor. 
-- Clase Router --> se encarga del enrutamiento (registra y verifica). App importa verificarRuta y la llama cada vez que llega una solicitud al servidor. 
+- Clase `App` --> construye un objeto vacío "general" para todas las rutas de la aplicación y levanta el servidor. 
+- Clase `Router` --> se encarga del enrutamiento (registra y verifica). `App` importa `verificarRuta` y la llama cada vez que llega una solicitud al servidor. 
 
-## Cuarta etapa. Middlewares
+## Cuarta etapa. *Middlewares*
+Los *middlewares* son fundamentales para la estructura de un servidores porque permiten procesar información *antes* de que las solicitudes lleguen a su función controladora. Típicamente, un *middleware* tiene la siguiente firma:
+```javascript
+funcionMiddleware(res, req, next) {}
+```
+Un *middleware* hace su trabajo y luego llama a `next()` para seguir la cadena de ejecución, de manera que la solicitud pueda llegar a su función controladora. 
+
+
 
 ## Quinta etapa. Leyendo el *body* de una *request*
 
