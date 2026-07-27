@@ -10,7 +10,9 @@
     - [Definiendo *endpoints*](#definiendo-endpoints)
     - [Definiendo *handlers*](#definiendo-handlers)
     - [Sobre el *Single Responsibility Principle* y una hipotética Encore 2.0](#sobre-el-single-responsibility-principle-y-una-hipotética-encore-20)
-4. [Cuarta etapa. Middlewares](#cuarta-etapa-middlewares)
+4. [Cuarta etapa. *Middlewares*](#cuarta-etapa-middlewares)
+    - [Implementando `registrarMiddleware`](#implementando-registrarmiddleware)
+    - [Implementando `ejecutarMiddleware()`](#implementando-ejecutarmiddleware)
 5. [Quinta etapa. Leyendo el *body* de una *request*](#quinta-etapa-leyendo-el-body-de-una-request)
 6. [Sexta etapa. Rutas dinámicas y más métodos HTTP](#sexta-etapa-rutas-dinámicas-y-más-métodos-http)
 7. [Séptima etapa. Publicando Encore en npm](#séptima-etapa-publicando-encore-en-npm)
@@ -396,6 +398,7 @@ rutasUsuarios.registrarRuta("/tareas", traerTareas)
 export { rutasUsuarios }
 ```
 La idea de la modularidad es que los métodos de enrutamiento estén definidas en el objeto `Router`, no en el objeto `App`. 
+
 3. Ahora bien, ¿cómo hace nuestro servidor para verificar que las rutas existen, si en realidad estamos agregando las rutas registradas al objeto vacío de cada objeto Router? Tendríamos que implementar algo que *conecte* ambos objetos, el de cada grupo de rutas con el objeto de rutas general. Podríamos definir un método `use` en `App` (como hace Express) para pasar las rutas del objeto propio al objeto rutas de App, algo así:
 ```javascript
 app.use(rutaProductos)
@@ -409,13 +412,131 @@ En resumen:
 - Clase `Router` --> se encarga del enrutamiento (registra y verifica). `App` importa `verificarRuta` y la llama cada vez que llega una solicitud al servidor. 
 
 ## Cuarta etapa. *Middlewares*
-Los *middlewares* son fundamentales para la estructura de un servidores porque permiten procesar información *antes* de que las solicitudes lleguen a su función controladora. Típicamente, un *middleware* tiene la siguiente firma:
+Los *middlewares* son fundamentales para la estructura de un servidores porque permiten procesar información *antes* de que las solicitudes lleguen a su función controladora. Típicamente, un *middleware* es una función de JavaScript que tiene la siguiente firma:
 ```javascript
-funcionMiddleware(res, req, next) {}
+funcionMiddleware(req, res, next)
 ```
-Un *middleware* hace su trabajo y luego llama a `next()` para seguir la cadena de ejecución, de manera que la solicitud pueda llegar a su función controladora. 
+Un *middleware* hace su trabajo y luego llama a `next()` para seguir la cadena de ejecución, de manera que la solicitud pueda llegar a su función controladora. Los *middlewares* se ejecutan de manera secuencial, en orden; esto es importante, y veremos cómo ingluye en la manera de implementar el soporte para *middlewares* en nuestro *framework*. 
 
+¿Qué vamos a necesitar para implementar esta funcionalidad?
+1. Una función que, análoga a *registrarRuta*, permita registrar *middlewares*.
+2. Una función que ejecute los *middlewares* en orden. 
 
+### Implementando `registrarMiddleware()`
+Como mencionábamos anteriorimente, necesitamos escribir una función que registre los *middlewares*, así como más adelante en nuestro recorrido implementamos una función que registra las rutas de nuestro servidor. El procedimiento es similar: en primer lugar, vamos a necesitar un "lugar" donde almacenar esos *middlewares*. Si para almacenar las rutas habíamos creado un objeto rutas, para almacenar los *middlewares* vamos a crear un *array* *middlewares*. ¿Por qué un arreglo? Porque los arreglos nos permiten trabajar con *índices*, de manera que la ejecución sencuencial de los *middlewares* va a ser mucho más sencilla. De esta manera, la función constructora queda ahora así:
+```javascript
+constructor() {
+    this.rutas = {}
+    this.middlewares = []
+}
+```
+En segundo lugar, y para escribir la función que registra los *middlewares*, vamos a agregar esta porción de código a nuestra definción de la clase *App*:
+```javascript
+registrarMiddleware(funcion) {
+    if (!this.middlewares.includes(funcion)) {
+        this.middlewares.push(funcion)
+    }
+}
+```
+Esta función entonces toma como parámetro otra función (el *middleware*), verifica que no esté ya en la lista de *middlewares* registrados y, si no está, lo agrega. 
+
+Esta función sería análoga a use() en Express. Si en Express hacíamos esto:
+```javascript
+app.use(middleware)
+```
+En Encore, nuestro `index.js` se ve ahora de la siguiente manera:
+```javascript
+const app = new App()
+
+app.registrarRuta("/", handlers.inicio, "GET")
+app.registrarRuta("/tareas", handlers.traerTareas, "GET")
+app.registrarRuta("/usuarios", handlers.traerUsuarios, "GET")
+app.registrarRuta("/tarea", handlers.nuevaTarea, "POST")
+
+app.registrarMiddleware(middlewares.middlewareMetodo)
+
+app.levantarServidor()
+```
+El *middleware* que aparece en la línea para registrar *middlewares* es el siguiente:
+```javascript
+function middlewareMetodo(req, res, next) {
+    console.log(`Método ${req.method}, URL ${req.url}`)
+    next()
+}
+```
+Es una función sencilla que imprime en consola el método y la URL de la solicitud. Lo escribimos en un archivo aparte, `middlewares.js`, y lo importamos en el archivo principal. 
+
+El orden en el que escribimos todas las llamadas a los métodos de la clase `App` es importante:
+
+1. Primero definimos las rutas.
+2. Luego definimos los *middlewares*.
+3. Luego levantamos el servidor.
+
+Los pasos 1 y 2 pueden invertirse, pero sí o sí deben escribirse *antes* de levantar el servidor. La razón es que *dentro* de la función que levanta el servidor tendremos que verificar rutas y *middlewares*, de manera que debemos haberlos definido *antes* para poder hacer la verificación. 
+
+### Implementando `ejecutarMiddleware()`
+Ya tenemos rutas y *middlewares* definidos. Ahora, ¿cómo hacemos para que el servidor ejecute el/los *middleware*/s *antes* de ejecutar el controlador asociado a la ruta de la solicitud? Veamos cómo quedó implementado ahora nuestra función para levantar el servidor:
+```javascript
+levantarServidor() {
+    const servidor = http.createServer((req, res) => {
+        const ejecutarRuta = () => {
+            const handler = this.verificarRuta(req.url, req.method)
+            if (handler) {
+                handler(req, res)
+            } else {
+                res.writeHead(404)
+                res.end(JSON.stringify({mensaje: "Ruta no encontrada."}), null, 2)
+            }
+        }
+
+        this.ejecutarMiddleware(req, res, 0, ejecutarRuta)
+    })
+    
+    servidor.listen(puerto, () => {console.log(`Servidor corriendo en ${puerto}.`)})
+}
+```
+Desglosemos el código:
+1. Primero definimos (pero todavía no llamamos) una **función callback** que va a ejecutarse cada vez que llega una solicitud a nuestro servidor. Nombramos a esa función callback `ejecutarRuta` para hacerlo más claro. Dentro de esta función callback verificamos la ruta de la solicitud, ejecutamos el controlador y enviamos la respuesta correspondiente al cliente. 
+2. En segundo lugar, llamamos a la función `ejecutarMiddleware()`, pasándole los objetos `req` y `res` como argumentos, además de un `0` (ya veremos por qué) y el propio callback que definimos primero. 
+3. Veamos de cerca la función `ejecutarMiddleware()`:
+```javascript
+ejecutarMiddleware(req, res, index, callback) {
+    if (index === this.middlewares.length) {
+        callback()
+        return
+    }
+
+    const middlewareAEjecutar = this.middlewares[index]
+    const next = () => {
+        this.ejecutarMiddleware(req, res, index + 1, callback)
+    }
+
+    middlewareAEjecutar(req, res, next)
+}
+```
+La función define cuatro parámetros: los objetos `req` y `res`, la variable `index` y un callback (luego le pasaremos `ejecutarRuta()`, el que definimos dentro de `levantarServidor()`). ¿Por qué es importante pasarle un índice? Porque, como necesitamos que los *middlewares* se ejecuten en orden, podemos acceder a ellos a través de su posición en el arreglo. 
+
+Analicemos ahora esta parte:
+```javascript
+const middlewareAEjecutar = this.middlewares[index]
+const next = () => {
+    this.ejecutarMiddleware(req, res, index + 1, callback)
+}
+```
+Básicamente, primero guardamos en una variable el *middleware* que vamos a ejecutar. Imaginemos que nuestro arreglo de *middlewares* es el siguiente:
+```javascript
+const middlewares = [middlewareMetodo]
+```
+Si a la función `ejecutarMiddleware()` le pasamos `0` como índice (para empezar ejecutando el primer *middleware* almacenado en nuestro *array*), la variable `middlewareAEjecutar` será `middlewareMetodo`. 
+
+En la introducción de esta cuarta etapa, dijimos que un *middleware* es una función que primero ejecuta su código y luego le pasa el "control" a otra función; en términos de lo que estamos desarrollando ahora, "pasar el control" es básicamente ejecutar el siguiente *middleware* del arreglo. ¿Cómo logramos eso? Aumentando el valor de `index` en 1. Por eso la definición de la función flecha `next()` es, en última instancia, volver a llamar a `ejecutarMiddleware()` pero con `index + 1` como argumento. Es un proceso recursivo: definimos cuál es el siguiente *middleware* a ejecutar y llamamos a `ejecutarMiddleware()` con ese *middleware* pasado como argumento. 
+
+De esta manera, entonces, repasemos todo el flujo de definición y ejecución:
+1. Creamos un *array* `middlewares` para almacenar los *middlewares* que definamos. 
+2. Creamos una función que guarda los *middlewares* en ese *array*. 
+3. Definimos una función que ejecuta, recursivamente, los *middlewares* globales que guardamos en el arreglo. 
+4. En la función que crea el servidor, llamamos a la función del punto 3 y ejecutamos los *middlewares* uno detrás del otro. 
+5. Cuando se ejecutaron todos los *middlewares*, ejecutamos el controlador asociado a la ruta de la solicitud. 
 
 ## Quinta etapa. Leyendo el *body* de una *request*
 
