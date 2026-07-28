@@ -11,8 +11,11 @@
     - [Definiendo *handlers*](#definiendo-handlers)
     - [Sobre el *Single Responsibility Principle* y una hipotética Encore 2.0](#sobre-el-single-responsibility-principle-y-una-hipotética-encore-20)
 4. [Cuarta etapa. *Middlewares*](#cuarta-etapa-middlewares)
-    - [Implementando `registrarMiddleware`](#implementando-registrarmiddleware)
+    - [Implementando `registrarMiddleware()`](#implementando-registrarmiddleware)
     - [Implementando `ejecutarMiddleware()`](#implementando-ejecutarmiddleware)
+    - [Primera prueba de integración](#primera-prueba-de-integración)
+    - [*Middlewares* de ruta](#middlewares-de-ruta)
+    - [Segunda prueba de integración](#segunda-prueba-de-integración)
 5. [Quinta etapa. Leyendo el *body* de una *request*](#quinta-etapa-leyendo-el-body-de-una-request)
 6. [Sexta etapa. Rutas dinámicas y más métodos HTTP](#sexta-etapa-rutas-dinámicas-y-más-métodos-http)
 7. [Séptima etapa. Publicando Encore en npm](#séptima-etapa-publicando-encore-en-npm)
@@ -537,6 +540,57 @@ De esta manera, entonces, repasemos todo el flujo de definición y ejecución:
 3. Definimos una función que ejecuta, recursivamente, los *middlewares* globales que guardamos en el arreglo. 
 4. En la función que crea el servidor, llamamos a la función del punto 3 y ejecutamos los *middlewares* uno detrás del otro. 
 5. Cuando se ejecutaron todos los *middlewares*, ejecutamos el controlador asociado a la ruta de la solicitud. 
+
+### Primera prueba de integración
+Con lo que desarrollamos hasta ahora, podemos realizar una prueba para ver cómo se comportan los *middlewares* y los controladores. Para ver mejor el funcionamiento del orden secuencial de los middlewares, vamos a registrar otro, así:
+```javascript
+function setearHeader(req, res, next) {
+    res.setHeader("X-Powered-By", "Encore")
+    console.log("Header seteado: 'X-Powered-By Encore'")
+    next()
+}
+```
+Y luego, en `index.js`:
+```javascript
+app.registrarMiddleware(middlewares.setearHeader)
+```
+Ahora vamos a hacer una solicitud utilizando, en este caso, el motor `curl`, dado que es una solicitud bien rápida. Escribimos este comando en terminal:
+```bash
+curl.exe -X GET http://localhost:3000
+```
+> Nota: en el powershell de Windows hay que escribir `curl.exe` porque `curl` (solo) es el alias de Invoke-WebRequest, un equivalente a curl pero de powershell. 
+
+Al enviar la solicitud, vemos que obtenemos la siguiente respuesta:
+```bash
+{"mensaje":"Bienvenidos a mi servidor creado con Encore."}
+```
+Esto nos indica que nuestro servidor respondió perfectamente. Ahora, al revisar la consola, podemos comprobar que nuestros middlewares también respondieron según lo esperado:
+```bash
+Servidor corriendo en 3000.
+Método GET, URL /
+Header seteado: 'X-Powered-By Encore'
+```
+Analicemos un poco más en profundidad la función `createServer()`. Como ya sabemos, esta función nativa del módulo `http` recibe como parámetro un *callback*, que se ejecuta cada vez que llega una solicitud. Nosotros definimos que ese *callback* hace por el momento dos cosas: ejecuta *middlewares*, verifica rutas y ejecuta controladores. Fuera del *callback*, llamamos a la función `listen()`, que *también* define su propio *callback* como parámetro. Cuando llamamos a esa función `listen()`, nosotros definimos, casi por convención, que ese *callback* imprime en consola el puerto en el que está escuchando el servidor. De esta manera, la secuencia de ejecución es la siguiente:
+
+- *callback* de `listen()` --> se ejecuta una vez el servidor está creado y corriendo (por eso vemos *primero* el `console.log()` de ese *callback* en consola)
+- *callback* de `createServer()` --> se ejecuta cada vez que llega una solicitud al servidor (por eso vemos la ejecución de *middlewares* y controladores *despues* del "Servidor corriendo en...")
+
+Ahora bien, como ya hemos mencionado en el inicio de esta documentación, la manera en que ambos *callbacks* "saben" cuándo ejecutarse forma parte de la implementación interna del módulo `http`. 
+
+### *Middlewares* de ruta
+Los *middlewares* que implementamos hasta ahora son los denominados *middlewares globales*, porque se ejecutan antes que **cualquier** solicitud. Es decir, con los *middlewares* que tenemos escritos ahora en nuestro servidor, **todas** las solicitudes HTTP que hagamos imprimirán el método, la URL y la sentencia "Header seteado: 'X-Powered-By Encore'". 
+
+Ahora bien, muchos servidores implementan los denominados *middlewares de ruta*, que son aquellos que se ejecutan en *rutas específicas*. Un ejemplo claro sería el de un *middleware* de autenticación: una ruta `GET /tareas` que refiera a las tareas de un usuario en particular debería ser accesible *solo* para un usuario que inició sesión en la aplicación, no para cualquier cliente que realice una solicitud a ese endpoint. Esto habitualmente se resuelve, a su vez, implementando algún sistema de tokens (por ejemplo, a través de JSON Web Tokens). Sin embargo, si también implementáramos una ruta para *crear* una cuenta en la aplicación (algo como `POST /registro`), no tendría sentido que esa ruta a su vez estuviera protegida con un *middleware* de autenticación. Si todavía no nos registramos, ¿cómo obtenemos el token para ingresar a nuestra cuenta? Es por eso que es importante distinguir entre *middlewares* globales y *middlewares* de ruta, porque dependiendo de las necesidades de cada endpoint vamos a necesitar implementar uno u otro. 
+
+### Segunda prueba de integración
+
+
+
+
+
+
+
+
 
 ## Quinta etapa. Leyendo el *body* de una *request*
 
