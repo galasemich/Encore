@@ -7,32 +7,40 @@ class App {
         this.middlewares = []
     }
 
-    registrarRuta(ruta, handler, metodo) {
+    registrarRuta(ruta, handler, metodo, middlewares) {
         if (!this.rutas[metodo]) {
             this.rutas[metodo] = {}
         }
 
-        this.rutas[metodo][ruta] = handler
+        if (middlewares) {
+            this.rutas[metodo][ruta] = {handler, middlewares}
+        } else {
+            this.rutas[metodo][ruta] = {handler}
+        }
     }
 
     verificarRuta(ruta, metodo) {
-        if (!this.rutas[metodo]) {
-            return false
+        if (!this.rutas[metodo][ruta]) {
+            return false 
         } else {
-            return this.rutas[metodo][ruta]
+            const handler = this.rutas[metodo][ruta].handler
+            const middlewares = this.rutas[metodo][ruta].middlewares || []
+            return [handler, middlewares]
         }
     }
 
     levantarServidor() {
         const servidor = http.createServer((req, res) => {
             const ejecutarRuta = () => {
-                const handler = this.verificarRuta(req.url, req.method)
-                if (handler) {
-                    handler(req, res)
-                } else {
+                const [ handler, middlewares ] = this.verificarRuta(req.url, req.method)
+
+                if (!handler) {
                     res.writeHead(404)
                     res.end(JSON.stringify({mensaje: "Ruta no encontrada."}), null, 2)
+                    return
                 }
+                
+                this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
             }
 
             this.ejecutarMiddleware(req, res, 0, ejecutarRuta)
@@ -58,6 +66,20 @@ class App {
             this.ejecutarMiddleware(req, res, index + 1, callback)
         }
 
+        middlewareAEjecutar(req, res, next)
+    }
+
+    ejecutarMiddlewareDeRuta(req, res, index, middlewares, handler) {
+        if (index === middlewares.length) {
+            handler(req, res)
+            return
+        }
+
+        const middlewareAEjecutar = middlewares[index]
+        const next = () => {
+            this.ejecutarMiddlewareDeRuta(req, res, index + 1, middlewares, handler)
+        }
+        
         middlewareAEjecutar(req, res, next)
     }
 }
