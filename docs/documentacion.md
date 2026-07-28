@@ -15,6 +15,9 @@
     - [Implementando `ejecutarMiddleware()`](#implementando-ejecutarmiddleware)
     - [Primera prueba de integración](#primera-prueba-de-integración)
     - [*Middlewares* de ruta](#middlewares-de-ruta)
+        - [Modificando `registrarRuta()` y `verificarRuta()`](#modificando-registrarruta-y-verificarruta)
+        - [Nueva función: `ejecutarMiddlewareDeRuta(`)](#nueva-función-ejecutarmiddlewarederuta)
+        - [Integrando todo: cómo queda `levantarServidor()`](#integrando-todo-cómo-queda-levantarservidor)
     - [Segunda prueba de integración](#segunda-prueba-de-integración)
 5. [Quinta etapa. Leyendo el *body* de una *request*](#quinta-etapa-leyendo-el-body-de-una-request)
 6. [Sexta etapa. Rutas dinámicas y más métodos HTTP](#sexta-etapa-rutas-dinámicas-y-más-métodos-http)
@@ -580,7 +583,132 @@ Ahora bien, como ya hemos mencionado en el inicio de esta documentación, la man
 ### *Middlewares* de ruta
 Los *middlewares* que implementamos hasta ahora son los denominados *middlewares globales*, porque se ejecutan antes que **cualquier** solicitud. Es decir, con los *middlewares* que tenemos escritos ahora en nuestro servidor, **todas** las solicitudes HTTP que hagamos imprimirán el método, la URL y la sentencia "Header seteado: 'X-Powered-By Encore'". 
 
-Ahora bien, muchos servidores implementan los denominados *middlewares de ruta*, que son aquellos que se ejecutan en *rutas específicas*. Un ejemplo claro sería el de un *middleware* de autenticación: una ruta `GET /tareas` que refiera a las tareas de un usuario en particular debería ser accesible *solo* para un usuario que inició sesión en la aplicación, no para cualquier cliente que realice una solicitud a ese endpoint. Esto habitualmente se resuelve, a su vez, implementando algún sistema de tokens (por ejemplo, a través de JSON Web Tokens). Sin embargo, si también implementáramos una ruta para *crear* una cuenta en la aplicación (algo como `POST /registro`), no tendría sentido que esa ruta a su vez estuviera protegida con un *middleware* de autenticación. Si todavía no nos registramos, ¿cómo obtenemos el token para ingresar a nuestra cuenta? Es por eso que es importante distinguir entre *middlewares* globales y *middlewares* de ruta, porque dependiendo de las necesidades de cada endpoint vamos a necesitar implementar uno u otro. 
+Ahora bien, muchos servidores implementan los denominados *middlewares de ruta*, que son aquellos que se ejecutan en *rutas específicas*. Un ejemplo claro sería el de un *middleware* de autenticación: una ruta `GET /tareas` que refiera a las tareas de un usuario en particular debería ser accesible *solo* para un usuario que inició sesión en la aplicación, no para cualquier cliente que realice una solicitud a ese endpoint. Esto habitualmente se resuelve, a su vez, implementando algún sistema de tokens (por ejemplo, a través de JSON Web Tokens). Sin embargo, si también implementáramos una ruta para *crear* una cuenta en la aplicación (algo como `POST /registro`), no tendría sentido que esa ruta a su vez estuviera protegida con un *middleware* de autenticación dado que, si todavía no nos registramos, ¿cómo obtenemos el token para ingresar a nuestra cuenta? Es por eso que es importante distinguir entre *middlewares* globales y *middlewares* de ruta, porque dependiendo de las necesidades de cada endpoint vamos a necesitar implementar uno u otro. 
+
+Encore implementa los middlewares de ruta de manera similar a como se ven en Express. En Encore, la definición de una ruta con middlewares de ruta se ve así: 
+```javascript
+app.registrarRuta("/tareas", handlers.traerTareas, "GET", [middlewares.autenticacion])
+```
+La idea es, entonces, agregar un parámetro (opcional, como ya vimos, porque no siempre vamos a querer que nuestra ruta tenga un middleware definido así) a la definición de la ruta. Además de la ruta propiamente dicha, el controlador y el método, agregamos una lista con los middlewares, importados desde el mismo archivo en donde escribimos los middlewares globales. Para permitir esto, es necesario introducir algunas modificaciones en varios aspectos de nuestra clase App. 
+
+#### Modificando `registrarRuta()` y `verificarRuta()`
+En primer lugar, tenemos que definir un nuevo parámetro en nuestra función `registrarRuta()` para poder pasarle middlewares de ruta, así:
+```javascript
+registrarRuta(ruta, handler, metodo, middlewares) {
+    if (!this.rutas[metodo]) {
+        this.rutas[metodo] = {}
+    }
+
+    if (middlewares) {
+        this.rutas[metodo][ruta] = {handler, middlewares}
+    } else {
+        this.rutas[metodo][ruta] = {handler}
+    }
+}
+```
+La función toma ahora un parámetro `middlewares`, que vamos a pasarlo como una lista. También modificamos un poco la estructura del objeto que almacena todas las rutas, que se vería algo así:
+```javascript
+{
+    "GET": 
+    {
+        "/tareas": {
+            handler: traerTareas,
+            middlewares: [autenticacion]
+        }
+    }, 
+    {
+        "/usuarios": {
+            handler: traerUsuarios
+        }
+    }
+}
+```
+La idea, entonces, es que la clave `ruta` tenga como valor a su vez un objeto, con dos pares clave-valor: uno para el controlador y uno para *middlewares*. Si la ruta no tiene middlewares declarados, simplemente no se pasa ese valor y no se crea la clave `middlewares`. 
+
+Por otra parte, la función `verificarRuta()` ahora debe tomar en cuenta esta modificación en la estrucutra de la ruta:
+```javascript
+verificarRuta(ruta, metodo) {
+    if (!this.rutas[metodo][ruta]) {
+        return false 
+    } else {
+        const handler = this.rutas[metodo][ruta].handler
+        const middlewares = this.rutas[metodo][ruta].middlewares || []
+        return [handler, middlewares]
+    }
+}
+```
+La función intenta encontrar la ruta utilizando ruta y método como argumentos. Si no la encuentra, retorna `false` y esto dispara, según nuestro callback de `levantarServidor()`, una respuesta con un status code 404. Si la encuentra, devuelve tanto handler como middlewares. Si la ruta no tiene middlewares declarados, devuelve un arreglo vacío, que nos va a venir bien cuando ejecutemos los middlewares. 
+
+#### Nueva función: `ejecutarMiddlewareDeRuta()`
+Además de las modificaciones pertinentes a las funciones anteriores, vamos a implementar una nueva función para ejecutar los middlewares de ruta. Repasemos un poco la secuencia de ejecución que deberíamos representar en nuestro código:
+
+1. Cuando llega una request a nuestro servidor, se ejecutan primero los middlewares globales. 
+2. Luego se verifica la ruta enviada. 
+    - Si se encuentra:
+        - Se ejecutan los middlewares de ruta ➡ acá se pone en funcionamiento `ejecutarMiddlewareDeRuta()`
+        - Se ejecuta el controlador. 
+    - Si no se encuentra: 
+        - El callback devuelve una respuesta con status code 404. 
+
+La nueva función, entonces, tiene un comportamiento similar a aquella que ejecuta middlewares globales. Lo que cambia es, por un lado, dónde se ubica (lo veremos en el próximo apartado) y, por el otro, qué hace cuando termina de ejecutarse. Veámosla de cerca:
+```javascript
+ejecutarMiddlewareDeRuta(req, res, index, middlewares, handler) {
+    if (index === middlewares.length) {
+        handler(req, res)
+        return
+    }
+
+    const middlewareAEjecutar = middlewares[index]
+    const next = () => {
+        this.ejecutarMiddlewareDeRuta(req, res, index + 1, middlewares, handler)
+    }
+    
+    middlewareAEjecutar(req, res, next)
+}
+```
+Como vemos, la estructura es similar a la función de los middlewares globales, pero con algunas particularidades. Pasemos al próximo apartado en el que veremos cómo se conectan todas las piezas. 
+
+#### Integrando todo: cómo queda `levantarServidor()`
+Para terminar de entender todo el procedimiento, vamos a ver cómo quedó terminada la función que levanta nuestro servidor:
+```javascript
+levantarServidor() {
+    const servidor = http.createServer((req, res) => {
+        const ejecutarRuta = () => {
+            const [ handler, middlewares ] = this.verificarRuta(req.url, req.method)
+
+            if (!handler) {
+                res.writeHead(404)
+                res.end(JSON.stringify({mensaje: "Ruta no encontrada."}), null, 2)
+                return
+            }
+            
+            this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
+        }
+
+        this.ejecutarMiddleware(req, res, 0, ejecutarRuta)
+    })
+    
+    servidor.listen(puerto, () => {console.log(`Servidor corriendo en ${puerto}.`)})
+}
+```
+En esta nueva versión con soporte para middlewares de ruta, el callback que denominamos `ejecutarRuta()` no llama solamente al controlador, como lo hacía en la versión anterior, sino que primero ejecuta los middlewares de ruta, en orden, y luego ejecuta el controlador en última instancia. 
+
+Notemos cómo se trata de un proceso recursivo. Como sabemos, JavaScript es un lenguaje de programación dirigido por eventos, entonces no hay que mirar tanto el orden de *escritura* del código sino más bien cómo se ejecutan las funciones callback y cómo eso influye en el *momento* es que pasa cada cosa. Si pensáramos en un orden secuencial, primero se ejecutarían los middlewares de ruta y luego los globales, lo cual no tiene sentido en un servidor. 
+
+Por el contrario, a lo que hay que atender es que, en realidad, `ejecutarMiddlewareDeRuta()` está *dentro* del callback `ejecutarRuta()`, que es el que le *pasamos* a `ejecutarMiddleware()`. De esta forma, la secuencia es la deseada: 
+
+1. Primero se ejecutan los middlewares globales. Cuando terminan de ejecutarse (es decir, no hay más en la lista), ejecutamos el callback. 
+2. ¿Y qué es ese callback? La propia `ejecutarRuta()`. ¿Qué hace `ejecutarRuta()`? Verifica controladores y middlewares. 
+3. Si encuentra la ruta, llama a `ejecutarMiddlewaresDeRuta()`. Los ejecuta todos hasta llegar al último y ahí pasa al controlador.
+
+Acá viene lo que mencionábamos antes de que nos conviene pasar una lista vacía si no hay middlewares definidos. Veamos esta línea:
+```javascript
+if (index === middlewares.length) {
+        handler(req, res)
+        return
+    }
+```
+Si middlewares es un `[]`, entra en el `if` y directamente ejecuta el controlador, que es el comportamiento esperado de una ruta que no tiene middlewares definidos. Si no encuentra la ruta, directamente envía el 404. 
 
 ### Segunda prueba de integración
 
