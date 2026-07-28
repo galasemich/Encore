@@ -5,4 +5,15 @@ function middlewareMetodo(req, res, next) {
     next()
 }
 
-export default {middlewareMetodo}
+function setearHeader(req, res, next) {
+    res.setHeader("X-Powered-By", "Encore")
+    console.log("Header seteado: 'X-Powered-By Encore'")
+    next()
+}
+
+function autenticacion(req, res, next) {
+    console.log("Usuario autenticado.")
+    next()
+}
+
+export default { middlewareMetodo, setearHeader, autenticacion }
