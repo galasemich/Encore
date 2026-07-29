@@ -710,6 +710,21 @@ if (index === middlewares.length) {
 ```
 Si middlewares es un `[]`, entra en el `if` y directamente ejecuta el controlador, que es el comportamiento esperado de una ruta que no tiene middlewares definidos. Si no encuentra la ruta, directamente envía el 404. 
 
+Podemos representar la estructura recursiva de las funciones con este diagrama:
+```mermaid
+---
+title: Middlewares
+---
+flowchart LR
+    request --> MG?{¿hay middleware global?} <--> |sí| MG[middleware global]
+                MG --> MG? 
+                MG?{¿hay middleware global?} --> |no| HMR?{¿hay middleware de ruta?} --> |sí| MR[middleware de ruta]
+                                                      MR --> HMR?
+                                                      HMR?{¿hay middleware de ruta?} --> |no| controlador --> respuesta
+```
+
+De esta manera vemos cómo el flujo consiste en dos recursiones: tanto la entidad middleware global como la entidad middleware de ruta tiene una flecha "hacia atrás" que vuelve a evaluar el nodo de decisión (¿todavía hay middlewares por ejecutar?). Recién cuando la respuesta es "no" pasa al siguiente estado, al controlador y en última instancia a la respuesta. 
+
 ### Segunda prueba de integración
 
 
