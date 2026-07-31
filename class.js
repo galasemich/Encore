@@ -11,7 +11,7 @@ class App {
         if (!this.rutas[metodo]) {
             this.rutas[metodo] = {}
         }
-
+        
         if (middlewares) {
             this.rutas[metodo][ruta] = {handler, middlewares}
         } else {
@@ -32,20 +32,21 @@ class App {
     levantarServidor() {
         const servidor = http.createServer((req, res) => {
             const ejecutarRuta = () => {
-                const [ handler, middlewares ] = this.verificarRuta(req.url, req.method)
+                const resultado = this.verificarRuta(req.url, req.method)
 
-                if (!handler) {
+                if (resultado) {
+                    const [ handler, middlewares ] = resultado
+                    this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
+                } else {
                     res.writeHead(404)
-                    res.end(JSON.stringify({mensaje: "Ruta no encontrada."}), null, 2)
+                    res.end(JSON.stringify({mensaje: "Ruta no encontrada (verificá ruta o verbo HTTP)."}), null, 2)
                     return
                 }
-                
-                this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
             }
-
+            
             this.ejecutarMiddleware(req, res, 0, ejecutarRuta)
         })
-        
+
         servidor.listen(puerto, () => {console.log(`Servidor corriendo en ${puerto}.`)})
     }
 
