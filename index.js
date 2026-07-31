@@ -11,6 +11,7 @@ app.registrarRuta("/tarea", handlers.nuevaTarea, "POST")
 
 app.registrarMiddleware(middlewares.middlewareMetodo)
 app.registrarMiddleware(middlewares.setearHeader)
+app.registrarMiddleware(middlewares.parsearBody)
 
 app.levantarServidor()
 
