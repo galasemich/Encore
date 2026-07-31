@@ -18,8 +18,10 @@
         - [Modificando `registrarRuta()` y `verificarRuta()`](#modificando-registrarruta-y-verificarruta)
         - [Nueva función: `ejecutarMiddlewareDeRuta(`)](#nueva-función-ejecutarmiddlewarederuta)
         - [Integrando todo: cómo queda `levantarServidor()`](#integrando-todo-cómo-queda-levantarservidor)
-    - [Segunda prueba de integración](#segunda-prueba-de-integración)
 5. [Quinta etapa. Leyendo el *body* de una *request*](#quinta-etapa-leyendo-el-body-de-una-request)
+    - [¿Cómo llega el *body* a nuestro servidor?](#cómo-llega-el-body-a-nuestro-servidor)
+    - [Parseando el body de una request](#parseando-el-body-de-una-request)
+    - [Agregando una tarea con POST](#agregando-una-tarea-con-post)
 6. [Sexta etapa. Rutas dinámicas y más métodos HTTP](#sexta-etapa-rutas-dinámicas-y-más-métodos-http)
 7. [Séptima etapa. Publicando Encore en npm](#séptima-etapa-publicando-encore-en-npm)
 
@@ -66,7 +68,7 @@ Este es un servidor muy simple que envía un status code de 200 (OK) y un mensaj
 
 La función `createServer` toma como parámetro una función *callback* que a su vez usar `req` y `res` como parámetros. Esta función se ejecuta *cada vez que nuestro servidor recibe una solicitud*. Esto es fundamental porque el objeto `req` nos permite acceder a datos importantes sobre las *requests* (como la URL o el método HTTP), como así también el objeto `res` nos permite leer información sobre la respuesta que va a dar el servidor. Veremos estos conceptos en los próximos apartados. 
 
-🧠 Para seguir pensando: ¿cómo se implementa esa "llegada" de una solicitud al servidor? Es decir, ¿cómo reconoce nuestro servidor que está llegando una *request*, y que debe responder con lo que escribimos en el cuerpo de la función *callback*? Eso nos lleva directamente al corazón de la implementación de Node, y de todo JavaScript: el concepto de *evento*. En términos simples: una solicitud se agrega a una *cola de eventos* cuando llega al servidor. En ese momento, Node recibe un aviso y ejecuta el *callback*. 
+💬 Para seguir pensando: ¿cómo se implementa esa "llegada" de una solicitud al servidor? Es decir, ¿cómo reconoce nuestro servidor que está llegando una *request*, y que debe responder con lo que escribimos en el cuerpo de la función *callback*? Eso nos lleva directamente al corazón de la implementación de Node, y de todo JavaScript: el concepto de *evento*. En términos simples: una solicitud se agrega a una *cola de eventos* cuando llega al servidor. En ese momento, Node recibe un aviso y ejecuta el *callback*. 
 
 ### Observando una *request*
 Dentro de la función `createServer`, podemos escribir algo como esto:
@@ -585,14 +587,14 @@ Los *middlewares* que implementamos hasta ahora son los denominados *middlewares
 
 Ahora bien, muchos servidores implementan los denominados *middlewares de ruta*, que son aquellos que se ejecutan en *rutas específicas*. Un ejemplo claro sería el de un *middleware* de autenticación: una ruta `GET /tareas` que refiera a las tareas de un usuario en particular debería ser accesible *solo* para un usuario que inició sesión en la aplicación, no para cualquier cliente que realice una solicitud a ese endpoint. Esto habitualmente se resuelve, a su vez, implementando algún sistema de tokens (por ejemplo, a través de JSON Web Tokens). Sin embargo, si también implementáramos una ruta para *crear* una cuenta en la aplicación (algo como `POST /registro`), no tendría sentido que esa ruta a su vez estuviera protegida con un *middleware* de autenticación dado que, si todavía no nos registramos, ¿cómo obtenemos el token para ingresar a nuestra cuenta? Es por eso que es importante distinguir entre *middlewares* globales y *middlewares* de ruta, porque dependiendo de las necesidades de cada endpoint vamos a necesitar implementar uno u otro. 
 
-Encore implementa los middlewares de ruta de manera similar a como se ven en Express. En Encore, la definición de una ruta con middlewares de ruta se ve así: 
+Encore implementa los *middlewares* de ruta de manera similar a como se ven en Express. En Encore, la definición de una ruta con middlewares de ruta se ve así: 
 ```javascript
 app.registrarRuta("/tareas", handlers.traerTareas, "GET", [middlewares.autenticacion])
 ```
-La idea es, entonces, agregar un parámetro (opcional, como ya vimos, porque no siempre vamos a querer que nuestra ruta tenga un middleware definido así) a la definición de la ruta. Además de la ruta propiamente dicha, el controlador y el método, agregamos una lista con los middlewares, importados desde el mismo archivo en donde escribimos los middlewares globales. Para permitir esto, es necesario introducir algunas modificaciones en varios aspectos de nuestra clase App. 
+La idea es, entonces, agregar un parámetro (opcional, como ya vimos, porque no siempre vamos a querer que nuestra ruta tenga un *middleware* definido así) a la definición de la ruta. Además de la ruta propiamente dicha, el controlador y el método, agregamos una lista con los *middlewares*, importados desde el mismo archivo en donde escribimos los *middlewares* globales. Para permitir esto, es necesario introducir algunas modificaciones en varios aspectos de nuestra clase App. 
 
 #### Modificando `registrarRuta()` y `verificarRuta()`
-En primer lugar, tenemos que definir un nuevo parámetro en nuestra función `registrarRuta()` para poder pasarle middlewares de ruta, así:
+En primer lugar, tenemos que definir un nuevo parámetro en nuestra función `registrarRuta()` para poder pasarle *middlewares* de ruta, así:
 ```javascript
 registrarRuta(ruta, handler, metodo, middlewares) {
     if (!this.rutas[metodo]) {
@@ -623,7 +625,7 @@ La función toma ahora un parámetro `middlewares`, que vamos a pasarlo como una
     }
 }
 ```
-La idea, entonces, es que la clave `ruta` tenga como valor a su vez un objeto, con dos pares clave-valor: uno para el controlador y uno para *middlewares*. Si la ruta no tiene middlewares declarados, simplemente no se pasa ese valor y no se crea la clave `middlewares`. 
+La idea, entonces, es que la clave `ruta` tenga como valor a su vez un objeto, con dos pares clave-valor: uno para el controlador y uno para *middlewares*. Si la ruta no tiene *middlewares* declarados, simplemente no se pasa ese valor y no se crea la clave `middlewares`. 
 
 Por otra parte, la función `verificarRuta()` ahora debe tomar en cuenta esta modificación en la estrucutra de la ruta:
 ```javascript
@@ -637,20 +639,20 @@ verificarRuta(ruta, metodo) {
     }
 }
 ```
-La función intenta encontrar la ruta utilizando ruta y método como argumentos. Si no la encuentra, retorna `false` y esto dispara, según nuestro callback de `levantarServidor()`, una respuesta con un status code 404. Si la encuentra, devuelve tanto handler como middlewares. Si la ruta no tiene middlewares declarados, devuelve un arreglo vacío, que nos va a venir bien cuando ejecutemos los middlewares. 
+La función intenta encontrar la ruta utilizando ruta y método como argumentos. Si no la encuentra, retorna `false` y esto dispara, según nuestro callback de `levantarServidor()`, una respuesta con un status code 404. Si la encuentra, devuelve tanto handler como *middlewares*. Si la ruta no tiene *middlewares* declarados, devuelve un arreglo vacío, que nos va a venir bien cuando ejecutemos los *middlewares*. 
 
 #### Nueva función: `ejecutarMiddlewareDeRuta()`
-Además de las modificaciones pertinentes a las funciones anteriores, vamos a implementar una nueva función para ejecutar los middlewares de ruta. Repasemos un poco la secuencia de ejecución que deberíamos representar en nuestro código:
+Además de las modificaciones pertinentes a las funciones anteriores, vamos a implementar una nueva función para ejecutar los *middlewares* de ruta. Repasemos un poco la secuencia de ejecución que deberíamos representar en nuestro código:
 
-1. Cuando llega una request a nuestro servidor, se ejecutan primero los middlewares globales. 
+1. Cuando llega una request a nuestro servidor, se ejecutan primero los *middlewares* globales. 
 2. Luego se verifica la ruta enviada. 
     - Si se encuentra:
-        - Se ejecutan los middlewares de ruta ➡ acá se pone en funcionamiento `ejecutarMiddlewareDeRuta()`
+        - Se ejecutan los *middlewares* de ruta ➡ acá se pone en funcionamiento `ejecutarMiddlewareDeRuta()`
         - Se ejecuta el controlador. 
     - Si no se encuentra: 
         - El callback devuelve una respuesta con status code 404. 
 
-La nueva función, entonces, tiene un comportamiento similar a aquella que ejecuta middlewares globales. Lo que cambia es, por un lado, dónde se ubica (lo veremos en el próximo apartado) y, por el otro, qué hace cuando termina de ejecutarse. Veámosla de cerca:
+La nueva función, entonces, tiene un comportamiento similar a aquella que ejecuta *middlewares* globales. Lo que cambia es, por un lado, dónde se ubica (lo veremos en el próximo apartado) y, por el otro, qué hace cuando termina de ejecutarse. Veámosla de cerca:
 ```javascript
 ejecutarMiddlewareDeRuta(req, res, index, middlewares, handler) {
     if (index === middlewares.length) {
@@ -666,7 +668,7 @@ ejecutarMiddlewareDeRuta(req, res, index, middlewares, handler) {
     middlewareAEjecutar(req, res, next)
 }
 ```
-Como vemos, la estructura es similar a la función de los middlewares globales, pero con algunas particularidades. Pasemos al próximo apartado en el que veremos cómo se conectan todas las piezas. 
+Como vemos, la estructura es similar a la función de los *middlewares* globales, pero con algunas particularidades. Pasemos al próximo apartado en el que veremos cómo se conectan todas las piezas. 
 
 #### Integrando todo: cómo queda `levantarServidor()`
 Para terminar de entender todo el procedimiento, vamos a ver cómo quedó terminada la función que levanta nuestro servidor:
@@ -674,47 +676,47 @@ Para terminar de entender todo el procedimiento, vamos a ver cómo quedó termin
 levantarServidor() {
     const servidor = http.createServer((req, res) => {
         const ejecutarRuta = () => {
-            const [ handler, middlewares ] = this.verificarRuta(req.url, req.method)
+            const resultado = this.verificarRuta(req.url, req.method)
 
-            if (!handler) {
+            if (resultado) {
+                const [ handler, middlewares ] = resultado
+                this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
+            } else {
                 res.writeHead(404)
-                res.end(JSON.stringify({mensaje: "Ruta no encontrada."}), null, 2)
+                res.end(JSON.stringify({mensaje: "Ruta no encontrada (verificá ruta o verbo HTTP)."}), null, 2)
                 return
             }
-            
-            this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
         }
-
+        
         this.ejecutarMiddleware(req, res, 0, ejecutarRuta)
     })
-    
+
     servidor.listen(puerto, () => {console.log(`Servidor corriendo en ${puerto}.`)})
 }
 ```
-En esta nueva versión con soporte para middlewares de ruta, el callback que denominamos `ejecutarRuta()` no llama solamente al controlador, como lo hacía en la versión anterior, sino que primero ejecuta los middlewares de ruta, en orden, y luego ejecuta el controlador en última instancia. 
+En esta nueva versión con soporte para *middlewares* de ruta, el callback que denominamos `ejecutarRuta()` no llama solamente al controlador, como lo hacía en la versión anterior, sino que primero ejecuta los *middlewares* de ruta, en orden, y luego ejecuta el controlador en última instancia. 
 
-Notemos cómo se trata de un proceso recursivo. Como sabemos, JavaScript es un lenguaje de programación dirigido por eventos, entonces no hay que mirar tanto el orden de *escritura* del código sino más bien cómo se ejecutan las funciones callback y cómo eso influye en el *momento* es que pasa cada cosa. Si pensáramos en un orden secuencial, primero se ejecutarían los middlewares de ruta y luego los globales, lo cual no tiene sentido en un servidor. 
+> Nota: también agregamos una verificación antes de desestructurar *handler* y *middlewares* dado que, si la ruta no se encuentra, la función `verificarRuta()` devuelve `false`; `false`, al ser un valor booleano, no puede desestructurarse, lo que genera un `TypeError`. 
+
+Notemos cómo se trata de un proceso recursivo. Como sabemos, JavaScript es un lenguaje de programación dirigido por eventos, entonces no hay que mirar tanto el orden de *escritura* del código sino más bien cómo se ejecutan las funciones callback y cómo eso influye en el *momento* es que pasa cada cosa. Si pensáramos en un orden secuencial, primero se ejecutarían los *middlewares* de ruta y luego los globales, lo cual no tiene sentido en un servidor. 
 
 Por el contrario, a lo que hay que atender es que, en realidad, `ejecutarMiddlewareDeRuta()` está *dentro* del callback `ejecutarRuta()`, que es el que le *pasamos* a `ejecutarMiddleware()`. De esta forma, la secuencia es la deseada: 
 
-1. Primero se ejecutan los middlewares globales. Cuando terminan de ejecutarse (es decir, no hay más en la lista), ejecutamos el callback. 
-2. ¿Y qué es ese callback? La propia `ejecutarRuta()`. ¿Qué hace `ejecutarRuta()`? Verifica controladores y middlewares. 
+1. Primero se ejecutan los *middlewares* globales. Cuando terminan de ejecutarse (es decir, no hay más en la lista), ejecutamos el callback. 
+2. ¿Y qué es ese callback? La propia `ejecutarRuta()`. ¿Qué hace `ejecutarRuta()`? Verifica controladores y *middlewares*. 
 3. Si encuentra la ruta, llama a `ejecutarMiddlewaresDeRuta()`. Los ejecuta todos hasta llegar al último y ahí pasa al controlador.
 
-Acá viene lo que mencionábamos antes de que nos conviene pasar una lista vacía si no hay middlewares definidos. Veamos esta línea:
+Acá viene lo que mencionábamos antes de que nos conviene pasar una lista vacía si no hay *middlewares* definidos. Veamos esta línea:
 ```javascript
 if (index === middlewares.length) {
         handler(req, res)
         return
     }
 ```
-Si middlewares es un `[]`, entra en el `if` y directamente ejecuta el controlador, que es el comportamiento esperado de una ruta que no tiene middlewares definidos. Si no encuentra la ruta, directamente envía el 404. 
+Si *middlewares* es un `[]`, entra en el `if` y directamente ejecuta el controlador, que es el comportamiento esperado de una ruta que no tiene *middlewares* definidos. Si no encuentra la ruta, directamente envía el 404. 
 
 Podemos representar la estructura recursiva de las funciones con este diagrama:
 ```mermaid
----
-title: Middlewares
----
 flowchart LR
     request --> MG?{¿hay middleware global?} <--> |sí| MG[middleware global]
                 MG --> MG? 
@@ -723,19 +725,98 @@ flowchart LR
                                                       HMR?{¿hay middleware de ruta?} --> |no| controlador --> respuesta
 ```
 
-De esta manera vemos cómo el flujo consiste en dos recursiones: tanto la entidad middleware global como la entidad middleware de ruta tiene una flecha "hacia atrás" que vuelve a evaluar el nodo de decisión (¿todavía hay middlewares por ejecutar?). Recién cuando la respuesta es "no" pasa al siguiente estado, al controlador y en última instancia a la respuesta. 
-
-### Segunda prueba de integración
-
-
-
-
-
-
-
-
+De esta manera vemos cómo el flujo consiste en dos recursiones: tanto la entidad *middleware* global como la entidad *middleware* de ruta tiene una flecha "hacia atrás" que vuelve a evaluar el nodo de decisión (que representa la pregunta ¿todavía hay *middlewares* por ejecutar?). Recién cuando la respuesta es "no" pasa al siguiente estado, al controlador y en última instancia a la respuesta. 
 
 ## Quinta etapa. Leyendo el *body* de una *request*
+Hasta el momento, un servidor creado con Encore solo permite registrar rutas de tipo GET. Este método HTTP es útil para *traer* datos, como en el caso de que quisiéramos mostrar una lista de tareas o enviar un mensaje de bienvenida de nuevo al cliente. Ahora bien, ¿qué pasaría si quisiéramos *agregar* una tarea o registrarnos como un usuario nuevo? Para eso, será necesario implementar un soporte para rutas de tipo POST. En términos de implementación, lo que vamos a necesitar hacer es *parsear el body* de una request, que es donde llega la información necesaria para agregar recursos al servidor. 
+
+Un *framework* como Express ya hace esto por nosotros; dentro de sus funcionalidades encontramos la función `express.json()` que justamente hace esto: "toma" la información que llega en el *body* de una solicitud y la guarda en la propiedad `body` del objeto `req`. Así, después, desde el lado del servidor podemos hacer `req.body` y tener esos datos. Dado que nuestro objetivo con Encore es "rehacer" algunas funcionalidades que ya están implementados en los *frameworks* más extendidos, implementaremos una función que toma esa información, la parsea y la hace accesible para un controlador. 
+
+### ¿Cómo llega el *body* a nuestro servidor?
+Una pregunta razonable que podríamos hacernos es: si tenemos que *parsear* el *body* de una request... ¿En qué formato llega al servidor? En términos simples, el *body* de una request llega en lo que se denomina un objeto de tipo **buffer**. Un **buffer** es un conjunto de bytes crudos que representan un string. Ahora bien, desde el servidor no podemos utilizar estos streams, porque un buffer se ve por ejemplo así:
+```bash
+<Buffer 7b 0a 20 20 22 6e 6f 6d 62 72 65 22 3a 20 22 63 6f 6d 70 72 61 72 20 63 6f 6d 69 64 61 20 70 61 72 61 20 65 6c 20 67 61 74 6f 22 2c 0a 20 20 22 63 61 ... 45 more bytes>
+```
+>Este es el resultado de un `console.log()` en la consola. La información está truncada para que sea medianamente legible, por eso la sentencia "45 more bytes". Node maneja internamente todos los bytes aunque no los muestre en terminal. 
+
+Necesitamos *convertir* esta cadena de bytes crudos en algo que podamos manipular con JavaScript. Una forma práctica de hacerlo es a través de *middleware* que parsee el payload de la solicitud y nos permita tener acceso a esos datos, por ejemplo, para agregar una tarea, actualizar alguna información, eliminar un recurso, etc. 
+
+### Parseando el body de una request
+En nuestro archivo `middlewares.js` vamos a definir una función `parsearBody()` que se va a encargar justamente de procesar la información que llega en el payload de la solicitud:
+```javascript
+function parsearBody(req, res, next) {
+    if (req.method != "GET") {
+        let data = []
+
+        const recibirStream = (chunk) => {
+            data.push(chunk)
+        }
+
+        const finalizarParseo = () => {
+            const stream = data.join()
+            const json = JSON.parse(stream)
+            req.body = json
+            next()
+        }
+
+        req.on("data", recibirStream)
+        req.on("end", finalizarParseo)
+    } else {
+        next()
+    }
+}
+```
+
+Desglosemos el código. 
+
+1. Primero definimos un bloque condicional que evalúa el método de la solicitud. ¿Por qué es importante esto? Básicamente, porque este *middleware* (como cualquier *middleware* que definamos en Encore) puede definirse como *middleware* global o como *middleware* de ruta. La diferencia está, como sabemos, en el lugar en donde ubicamos la referencia a esa función. Ahora bien, definirlo globalmente significa que va a ejecutarse antes de que *cualquier* solicitud llegue a su controlador, y esto representa un problema para las solicitudes GET, por ejemplo, porque estas típicamente no llevan `body`. Entonces, si tratamos de parsear un `body` que llega vacío tendríamos un error. De esta manera, podemos solucionar la implementación de dos formas:
+    - Implementarlo solo en las rutas que lleven `body` (POST, PUT, DELETE, PATCH). Esto es más directo pero más engorroso y, en última instancia, ineficiente si nuestro servidor crece y tenemos muchos `endpoints` con estos métodos HTTP. 
+    - Implementarlo globalmente pero solo ejecutándolo cuando la solicitud corresponda a alguno de esos verbos HTTP (esto es lo que haremos en Encore).
+
+    Esta condición, entonces, utiliza la propiedad `method` del objeto `req` y solo ejecuta la función si *no* se trata de una solicitud GET. 
+
+2. En este punto, antes de analizar los *callbacks* `recibirStream()` y `finalizarParseo()`, es importante discutir el método `on()`. Este método del objeto `req` (que, vale decirlo, es una instancia de la clase `IncommingMessage` del módulo `http`) se dedica a "escuchar" eventos relacionados con llegada de datos al servidor. Veamos ambos casos por separado:
+    - `req.on("data", callback)`. La idea detrás es que el callback se dispara cuando llega un evento de tipo `data`. El evento `data` implica, sin ir más lejos, que llegue el `body` de una request. Este `body` no llega todo junto, porque puede ser que sea muy grande o muy pesado, entonces llega en lo que se denominan *chunks*, es decir, "pedazos" de payload. Este callback se dispara iterativamente hasta que no haya nada más que recibir. 
+    - `req.on("end", callback)`. Así como escuchamos eventos `data` en el primer caso, en este caso el método escucha y dispara el callback cuando se produce un evento `end` que, como su nombre lo indica, le avisa a Node que terminó de llegar el `body`. ¿Cómo "sabe" esto Node? Porque llega un *chunk* vacío. Ahí, Node sabe que el payload ya llegó entero y dispara el callback de finalización. 
+
+3. Ahora veamos los dos callbacks en profundidad:
+    - `recibirStream(chunk)`. Como ya adelantamos anteriormente, esta función va "recibiendo" pedazos de payload. Para almacenar estos pedazos y luego construir el payload completo para parsear, es necesario guardarlos en una lista, que definimos antes con la sentencia `let data = []`. Como dijimos, esta función se ejecuta hasta que termina de llegar todo el `body`. 
+    - `finalizarParseo()`. Esta función se encarga de, primero, unir todos los elementos de la lista. Notemos que `join()` ya convierte los pedazos a string (recordemos que llegan en objetos de tipo buffer), porque internamente hace algo como `buffer.toString()`, y luego los concatena. Si quisiéramos hacer explícita esa parte, podríamos hacer algo como `chunk.toString()` antes de almacenarlo en la lista `data`. En segundo lugar, utiliza `JSON.parse()` para parsear el string y convertirlo en un objeto JavaScript, además de guardarlo en la propiedad body de `req`. Finalmente, llama a `next()` para pasar a un próximo middleware o ejecutar el controlador correspondiente. 
+
+Con todas estas piezas, nuestro servidor ahora es capaz de recibir información en el payload de la solicitud y hacer algo con ella. Para probar esto, vamos a hacer nuestra primera solicitud POST. 
+
+### Agregando una tarea con POST
+En primer lugar, vamos a definir una ruta POST y un controlador que se encargue de manejarla. Agregaremos estas porciones de código a nuestros archivos `index.js` y `handlers.js` respectivamente:
+```javascript
+// En index.js
+app.registrarRuta("/tarea", handlers.nuevaTarea, "POST")
+```
+```javascript
+// En handlers.js
+function nuevaTarea(req, res) {
+    const nuevaTarea = req.body
+    tareas.push(nuevaTarea)
+    res.end(JSON.stringify({mensaje: "Tarea agregada correctamente."}, null, 2))
+}
+```
+Como ya anticipamos, ahora nuestro objeto `req` cuenta con la propiedad `body`, que contiene el cuerpo de la `request`. En este caso, nuestro body se ve así:
+```json
+{
+    "nombre": "comprar comida para el gato",
+    "categoria": "urgente",
+    "usuario": "galapha"
+}
+```
+Vamos a guardar esta información en un archivo `post.json` y utilizar curl para enviarlo a nuestro servidor. Por supuesto, también podemos utilizar algún cliente externo como Postman o Thunder Client y escribir el JSON directamente en la sección body del cliente.
+
+El comando en terminal se vería así:
+```bash
+curl.exe -X POST http://localhost:3000/tarea `
+-d "@post.json"
+```
+Idealmente, deberíamos recibir en la consola la respuesta "Tarea agregada correctamente". Luego, podemos hacer una solicitud GET al endpoint /tareas para que nos devuelva todas las tareas. Si hicimos todo bien, deberíamos ver esa nueva tarea añadida a la lista. 
+
+>Es importante tener en cuenta que estos datos, guardados en una lista, *no* se mantienen al reiniciar el servidor. Para que los datos persistan, es necesario guardarlos en una base de datos acorde. Sin embargo, a fines didácticos de mostrar cómo funciona el framework, es suficiente. 
 
 ## Sexta etapa. Rutas dinámicas y más métodos HTTP
 
