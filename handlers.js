@@ -18,4 +18,10 @@ function inicio(req, res) {
     res.end(JSON.stringify({mensaje: "Bienvenidos a mi servidor creado con Encore."}), null, 2)
 }
 
-export default { traerTareas, traerUsuarios, inicio }
+function nuevaTarea(req, res) {
+    const nuevaTarea = req.body
+    tareas.push(nuevaTarea)
+    res.end(JSON.stringify({mensaje: "Tarea agregada correctamente."}, null, 2))
+}
+
+export default { traerTareas, traerUsuarios, inicio, nuevaTarea }
