@@ -1,4 +1,5 @@
 import http from "http"
+import { match } from "node-match-path"
 const puerto = 3000
 
 class App {
@@ -20,12 +21,25 @@ class App {
     }
 
     verificarRuta(ruta, metodo) {
-        if (!this.rutas[metodo][ruta]) {
-            return false 
-        } else {
-            const handler = this.rutas[metodo][ruta].handler
-            const middlewares = this.rutas[metodo][ruta].middlewares || []
-            return [handler, middlewares]
+        let rutaEncontrada = false
+
+        for (const metodoObjeto of Object.entries(this.rutas)) {
+            for (const rutaOriginal of (Object.entries(metodoObjeto[1]))) {
+                const verificacion = match(rutaOriginal[0], ruta)
+
+                if (verificacion.matches === true) {
+                    const handler = this.rutas[metodo][rutaOriginal[0]].handler
+                    const middlewares = this.rutas[metodo][rutaOriginal[0]].middlewares || []
+                    const params = JSON.parse(JSON.stringify(verificacion.params || []))
+                    return [ handler, middlewares, params ]
+                } else {
+                    rutaEncontrada = false
+                }
+            }
+        }
+
+        if (!rutaEncontrada) {
+            return false
         }
     }
 
@@ -35,7 +49,8 @@ class App {
                 const resultado = this.verificarRuta(req.url, req.method)
 
                 if (resultado) {
-                    const [ handler, middlewares ] = resultado
+                    const [ handler, middlewares, params ] = resultado
+                    req.params = params
                     this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
                 } else {
                     res.writeHead(404)
