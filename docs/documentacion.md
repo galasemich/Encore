@@ -49,6 +49,8 @@ Esta documentación toma una decisión pedagógica importante que vale la pena a
 
 Al finalizar la documentación, el lector estará entonces capacitado para también dos cosas: desarrollar su propio framework y también utilizarlo y crear sus propias aplicaciones backend; y, por qué no, luego enlazarlas con un frontend y construir una aplicación web completa. 
 
+>Importante: Encore no está propuesto como un *reemplazo* de Express ni mucho menos. En esencia es solamente un ejercicio (funcional, sí) para aprender sobre el funcionamiento de los servidores. Como tal, **no es perfecto ni la mejor solución posible** a los problemas a resolver cuando se intenta desarrollar un framework. Está en mis planes seguir mejorando Encore para hacerlo cada vez más funcional, más prolijo y que su código sea más limpio y eficiente. 
+
 ## Primera etapa. Entendiendo el módulo `http`: servidores, solicitudes y respuestas
 En este proyecto usaremos como base el módulo nativo de Node `http`. Con él, podremos acceder a funciones como `createServer` para crear el servidor o `listen` para poner nuestro servidor a escuchar en un puerto. Las primeras pruebas que haremos tendrán el objetivo de entender cómo funciona el módulo; probaremos algunas operaciones sencillas para recibir solicitudes, enviar respuestas, definir status codes, etc. 
 
@@ -843,7 +845,7 @@ curl.exe -X GET http://localhost:3001/tarea/galapha
 Ahora bien, ¿cómo implementamos este soporte? Vamos a ir por partes. 
 
 #### *Pattern matching* en `verificarRuta()`
-Con las rutas dinámicas enfrentamos un "problema": tenemos que lograr que una solicitud a este endpoint:
+Con las rutas dinámicas enfrentamos un "problema". Tenemos que lograr que una solicitud a este endpoint:
 ```bash
 /usuario/galapha
 ```
@@ -852,6 +854,99 @@ se *reconozca* como una solicitud a este endpoint:
 /usuario/:nombre
 ```
 Como `/usuario/galapha` no corresponde a *ninguna* ruta almacenada en el objeto `rutas` de la clase `App`, la función verificadora no la encuentra y lanza un error 404. Para lograr que nuestro servidor reconozca `/usuario/galapha` como una "versión" de `/usuario/:nombre`, tenemos que hacer lo que se llama *pattern matching*, es decir, lograr que la función verificadora entienda que `galapha`, en el contexto de una ruta dinámica, no es más que un *valor* de `nombre`.
+
+Para realizar esta tarea, vamos a recurrir a la librería [`node-match-pattern`](https://www.npmjs.com/package/node-match-path), que se encarga de realizar justamente este trabajo. Con la función match(), comparamos dos strings: el endpoint "original" y la ruta solicitada. La función siempre devuelve un objeto de este estilo:
+```javascript
+{
+    matches: true, // O false, si las rutas no coinciden.
+    params: [Object: null prototype] { nombrePropiedad: valor }
+}
+```
+Más adelante veremos cómo resolver ese `[Objetc: null prototype]`. Lo importante, en este momento, es entender que, además de que esta librería nos permite realizar el matcheo de rutas, también nos almacena el valor de ese parámetro de ruta en una clave de objeto, lo que va a ser muy importante luego. 
+
+Por ejemplo, si hacemos la solicitudque ya mencionamos, obtenemos este objeto:
+```javascript
+{
+    matches: true,
+    params: [Object: null prototype] { nombre: 'galapha' }
+}
+```
+
+Si, por el contrario, las rutas no coinciden, obtendríamos algo así:
+```javascript
+{ 
+    matches: false, 
+    params: null 
+}
+```
+La idea es, entonces, utilizar esta funcionalidad en nuestra función `verificarRuta()`. Podríamos preguntarnos por qué no lo hacemos como un middleware global, algo que en principio parecería lógico, pero con una salvedad. Para hacer la comparación de rutas, necesitamos tener acceso a la ruta "original" de la cual la solicitud ejecuta una "versión". En una función middleware, solo tenemos acceso a la propiedad `url` del objeto `req`, que representa la ruta que viene en la solicitud, pero no tenemos con qué comparar. Por eso, para Encore decidí incluir la verificación directamente en la función `verificarRuta()`, dado que en ese scope sí tenemos acceso a toda la información necesaria. 
+
+Veamos entonces cómo queda la función `verificarRuta()` con la nueva comparación:
+```javascript
+verificarRuta(ruta, metodo) {
+    let rutaEncontrada = false
+
+    for (const metodoObjeto of Object.entries(this.rutas)) {
+        for (const rutaOriginal of (Object.entries(metodoObjeto[1]))) {
+            const verificacion = match(rutaOriginal[0], ruta)
+
+            if (verificacion.matches === true) {
+                const handler = this.rutas[metodo][rutaOriginal[0]].handler
+                const middlewares = this.rutas[metodo][rutaOriginal[0]].middlewares || []
+                const params = JSON.parse(JSON.stringify(verificacion.params || []))
+                
+                return [ handler, middlewares, params ]
+            }
+        }
+    }
+
+    if (!rutaEncontrada) {
+        return false
+    }
+}
+```
+Veamos el código paso a paso. 
+
+1️⃣ En primer lugar, vamos a definir una variable de control que se encargará de indicar si hemos encontrado una ruta que coincida con lo que enviamos en la solicitud. Esa variable rutaEncontrada es una variable definida con let, dado que puede ser que se reasigne luego. 
+
+2️⃣ La parte central de esta modificación de la función recae en el `for .. of`. La idea es iterar sobre las rutas almacenadas en el objeto `rutas` de nuestra clase `App` y realizar la comparación con la función matches(). Si las rutas coinciden, retornamos un arreglo con los datos que nos interesan: handler y middlewares y parámetros de ruta si estos últimos existen; de lo contrario, enviamos un a arreglo vacío. Es importante recalcar que, en el caso de coincidencia, la función matches() devuelve true tanto en las rutas dinámicas como en las rutas fijas. De esta manera, si estamos verificando la ruta /inicio, que no lleva parámetros de ruta, igual obtendremos true y podemos devolver los datos necesarios para utilizarlos luego. 
+
+3️⃣ Dado que no podemos iterar sobre un objeto como podemos iterar sobre un arreglo, vamos a utilizar la función Object.entries(), nativa de JavaScript, que convierte las "entradas" de un objeto a una arreglo. Tendremos entonces un arreglo compuesto por las claves y los valores de ese objeto. 
+
+La primera iteración toma la primera entrada de nuestro objeto, que es el método GET. Obtenemos lo siguiente:
+```bash
+[
+  'GET',
+  {
+    '/': { handler: [Function: inicio] },
+    '/tareas': { handler: [Function: traerTareas], middlewares: [Array] },
+    '/usuarios': { handler: [Function: traerUsuarios] },
+    '/usuario/:nombre': { handler: [Function: traerUsuario] }
+  }
+]
+```
+Como vemos, GET es el primer elemento del arreglo. El segundo elemento es a su vez un objeto con todas las rutas que corresponden al método GET. Como queremos acceder a los elementos de este objeto, vamos a utilizar el mismo método `Object.entries()`, pero ahora sobre `metodoObjeto[1]`, que representa el segundo elemento en la lista. Vamos a empezar a obtener resultados así:
+```bash
+[ '/', { handler: [Function: inicio] } ]
+```
+Vamos acercándonos a lo que nos interesa que, como vemos, es el primer elemento de este arreglo, la ruta propiamente dicha. De esta manera, la verificación la vamos a hacer sobre `rutaOriginal[0]`, que es
+```
+/
+```
+El `for .. of` va a seguir iterando hasta que encuentra la ruta que coincide. Si la encuentra, devuelve un arreglo con handler, middlewares y parámetros. Si no la encuentra, la variable de control permanece con valor `false` y `verificarRuta()` devuelve lo propio. 
+
+4️⃣ Atendamos esta parte del código: 
+```javascript
+const params = JSON.parse(JSON.stringify(verificacion.params || []))
+```
+Si volvemos a pensar en cómo parseamos el body de una solicitud, recordaremos que luego de parsearlo con `JSON.parse()`, creamos una propiedad `body` en el objeto `req` y asignamos el resultado del parseo a esa propiedad. En el caso de los parámetros de ruta vamos a hacer lo mismo; así, cuando escribamos el controlador, podremos hacer algo como req.params y trabajar con esos datos. 
+
+Sin embargo, como vimos anteriormente, la función `matches()` devuelve algo que no nos resulta del todo cómodo para guardar en la propiedad `params` de `req`. Básicamente, lo que nos "molesta" es ese `[Object: null prototype]`. 
+
+💬 En JavaScript, habitualmente los objetos heredan de un prototipo, lo cual permite aplicarles métodos como `toString()` o `hasOwnProperty()`. En cambio, los objetos con `null prototype` indican que fueron creados sin prototipo y no heredan esos métodos nativos de JavaScript. Para "sortear" esta dificultad, vamos a parsear el valor de la clave `params` con `JSON.parse(JSON.stringify())`. 
+
+- `JSON.stringify()` convierte ese objeto a un string, perdiendo la referencia al prototipo.
+- `JSON.parse()` convierte ese string a un objeto JavaScript.
 
 #### Nuevo controlador: `traerUsuario()`
 
