@@ -31,9 +31,8 @@ class App {
                     const handler = this.rutas[metodo][rutaOriginal[0]].handler
                     const middlewares = this.rutas[metodo][rutaOriginal[0]].middlewares || []
                     const params = JSON.parse(JSON.stringify(verificacion.params || []))
+                    
                     return [ handler, middlewares, params ]
-                } else {
-                    rutaEncontrada = false
                 }
             }
         }
