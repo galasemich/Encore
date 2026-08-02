@@ -1,4 +1,4 @@
-## Proyecto de mini framework web
+## Encore
 
 ![Status](https://img.shields.io/badge/status-en%20desarrollo-yellow)
 
