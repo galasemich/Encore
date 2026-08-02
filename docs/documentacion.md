@@ -23,12 +23,17 @@
     - [Parseando el body de una request](#parseando-el-body-de-una-request)
     - [Agregando una tarea con POST](#agregando-una-tarea-con-post)
 6. [Sexta etapa. Rutas dinámicas y más métodos HTTP](#sexta-etapa-rutas-dinámicas-y-más-métodos-http)
+    - [Rutas dinámicas](#rutas-dinámicas)
+        - [*Pattern matching* en `verificarRuta()`](#pattern-matching-en-verificarruta)
+        - [Nuevo controlador: `traerUsuario()`](#nuevo-controlador-traerusuario)
+    - [Más métodos HTTP: PUT y DELETE](#más-métodos-http-put-y-delete)
+    - [Middleware global de manejo de errores](#middleware-global-de-manejo-de-errores)
 7. [Séptima etapa. Publicando Encore en npm](#séptima-etapa-publicando-encore-en-npm)
 
 ## Introducción. ¿Por qué Encore?
-Habitualmente, cuando desarrollamos aplicaciones backend, utilizando algún módulo como Express.js o Nest.js. ¿Podríamos desarrollar backend con el módulo nativo de Node.js? Sí, claro, pero una librería como Express tiene muchas otras funcionalidades y además nos ahorran trabajo. 
+El camino más sencillo para desarrollar servidores con JavaScript es recurrir a frameworks como Express.js o Nest.js. ¿Podríamos desarrollar backend con el módulo nativo de Node.js? Sí, claro, pero una librería como Express tiene muchas otras funcionalidades y además nos ahorran trabajo. La utilidad de una librería recae en que *abstrae* muchos procesos que, si decidiéramos no usar ninguna, deberíamos realizar nosotros como desarrolladores cada vez que escribimos código backend. 
 
-Ahora bien, ¿qué pasa en el "detrás de escena" cuando hacemos algo como esto?
+Ahora bien, imaginemos que utilizamos Express: ¿qué pasa en el "detrás de escena" cuando escribimos algo como esto?
 
 ```javascript
 import express from "express"
@@ -36,11 +41,13 @@ import express from "express"
 const app = express()
 ```
 
-Para entender qué está pasando acá, *desarrollar un pequeño framework*, es decir, desarrollar algo como Express, es una muy buena opción. Se trata de un ejercicio interesante porque nos obliga a pensar funcionalidades que en módulos como Express o Nest ya están perfectamente implementadas. No se trata de "reiventar la rueda" sino de analizar el detrás de escena para entender mejor qué está pasando cuando utilizamos una librería. Esta idea es comparable, un poco, a la diferencia entre saber **manejar** y saber **cómo funciona un auto**. Por supuesto que, en la mayoría de los casos, entender cómo manejar es suficiente. Pero si queremos ir más allá, nos esperan otros desafíos: podemos saber cómo hacer un cambio (análogamente, podemos saber cómo levantar un servidor en Express), pero entender *cómo funciona* la maquinaria para que el cambio se produzca efectivamente (por ejemplo, cómo se mapean las rutas, siguiendo nuestra analogía) nos aporta un tipo de conocimiento diferente y muy valioso. Por supuesto, si vamos "para atrás" en los niveles de abstracción, podríamos preguntarnos cómo funciona el módulo `http`, cómo funciona Node, cómo está desarrollado el propio JavaScript... Esos niveles de abstracción son fascinantes pero escapan al objetivo de este proyecto. 
+Para entender qué está pasando acá, *desarrollar un pequeño framework*, es decir, desarrollar algo como Express, es una muy buena opción. Se trata de un ejercicio interesante porque nos obliga a pensar funcionalidades que en módulos como Express o Nest ya están perfectamente implementadas. No se trata de "reiventar la rueda", sino de entender en qué consisten específicamente esas abstracciones que Express o cualquier framework backend ya maneja. Desarrollando un framework, entenderemos mucho mejor los conceptos de ruta, solicitud, respuesta, controlador, middlewares, procesos recursivos, etc. 
 
-Esta documentación toma una decisión pedagógica importante que vale la pena aclarar. A lo largo de esta documentación, iremos haciendo dos cosas en simultáneo: por un lado, describiremos cómo se desarrolla un framework minimalista y los conceptos téoricos que existen detrás de ello y, por el otro, utilizaremos ese mismo framework para crear un servidor sencillo. La razón detrás de esta decisión es que, de esta manera, podemos ver los *efectos* de lo que construimos al mismo tiempo que lo desarrollamos. Podemos pensar, en términos téoricos, para qué necesitamos un enrutador, por ejemplo, y desarrollarlo, pero ver ese enrutador *en funcionamiento* hecha luz sobre nuestro trabajo, y nos permite entender de manera práctica para qué lo necesitamos y cómo funciona. 
+Esta idea es comparable, un poco, a la diferencia entre saber **manejar** y saber **cómo funciona un auto**. Por supuesto que, en la mayoría de los casos, entender cómo manejar es suficiente. Pero si queremos ir más allá, nos esperan otros desafíos: podemos saber cómo hacer un cambio (análogamente, podemos saber cómo levantar un servidor en Express), pero entender *cómo funciona* la maquinaria para que el cambio se produzca efectivamente (por ejemplo, cómo se mapean las rutas, siguiendo nuestra analogía) nos aporta un tipo de conocimiento diferente y muy valioso. Por supuesto, si vamos "para atrás" en los niveles de abstracción, podríamos preguntarnos cómo funciona el módulo `http`, cómo funciona Node, cómo está desarrollado el propio JavaScript... Esos niveles de abstracción son fascinantes pero escapan al objetivo de este proyecto. 
 
-Al finalizar la documentación, el lector estará capacitado para, entonces, también dos cosas: desarrollar su propio framework y también utilizarlo y crear sus propias aplicaciones backend; y, por qué no, luego enlazarlas con un frontend y construir una aplicación web completa. 
+Esta documentación toma una decisión pedagógica importante que vale la pena aclarar. A lo largo de este recorrido, iremos haciendo dos cosas en simultáneo: por un lado, describiremos cómo se desarrolla un framework minimalista y los conceptos téoricos que existen detrás de ello y, por el otro, utilizaremos ese mismo framework para crear un servidor sencillo. La razón detrás de esta decisión es que, de esta manera, podemos ver los *efectos* de lo que construimos al mismo tiempo que lo desarrollamos. Podemos pensar, en términos téoricos, para qué necesitamos un enrutador, por ejemplo, y desarrollarlo, pero ver ese enrutador *en funcionamiento* hecha luz sobre nuestro trabajo, y nos permite entender de manera práctica para qué lo necesitamos y cómo funciona. 
+
+Al finalizar la documentación, el lector estará entonces capacitado para también dos cosas: desarrollar su propio framework y también utilizarlo y crear sus propias aplicaciones backend; y, por qué no, luego enlazarlas con un frontend y construir una aplicación web completa. 
 
 ## Primera etapa. Entendiendo el módulo `http`: servidores, solicitudes y respuestas
 En este proyecto usaremos como base el módulo nativo de Node `http`. Con él, podremos acceder a funciones como `createServer` para crear el servidor o `listen` para poner nuestro servidor a escuchar en un puerto. Las primeras pruebas que haremos tendrán el objetivo de entender cómo funciona el módulo; probaremos algunas operaciones sencillas para recibir solicitudes, enviar respuestas, definir status codes, etc. 
@@ -148,7 +155,7 @@ Desglosemos el código:
 2. Utilizamos una función constructora para definir un objeto vacío. Notemos la importancia del `this`: `this` permite que, cuando instanciemos la clase, los métodos estén disponibles para ese nuevo objeto. Si solo usáramos una variable local, no podríamos luego trabajar libremente con esa instancia de la clase `App`. Así, cuando luego instanciemos la clase, crearemos un objeto vacío `rutas`. 
 3. ¿Para qué un objeto vacío? La idea es que, en ese objeto vacío, nuestro servidor almacene las rutas que vamos a predefinir para nuestra aplicación. 
 
-Para levantar nuestro servidor, vamos a incorporar entonces la función `createServer()`; ahora ya no en nuestro archivo principal `index.js` sino en la clase `App`. De esta manera, nuestra clase App ahora tiene un poco más de cuerpo:
+Para levantar nuestro servidor, vamos a incorporar entonces la función `createServer()`; ahora ya no en nuestro archivo principal `index.js` sino en la clase `App`. De esta manera, nuestra clase `App` ahora tiene un poco más de cuerpo:
 ```javascript
 const puerto = 3000
 
@@ -181,7 +188,7 @@ import { App } from "./class.js"
 const app = new App()
 app.levantarServidor()
 ```
-El paso a paso, vemos, es similar. Creamos una instancia del objeto App y llamamos al método que levanta el servidor. 
+El paso a paso, vemos, es similar. Creamos una instancia del objeto `App` y llamamos al método que levanta el servidor. 
 
 ## Tercera etapa. Implementando un enrutador simple
 Terminada la segunda etapa, nuestro servidor está corriendo. Ahora, para que se acerque todavía más a lo que implica un framework backend, necesitamos implementar lo que podríamos llamar un *enrutador*. Básicamente, y en términos estrictos, un enrutador es un dispositivo que dirige datos de una red a otra. Estos dispositivos son muy comunes para conectarse a internet, por ejemplo, porque permiten interconectar la red de la empresa que provee el servicio a la red de los hogares que contratan ese servicio (por eso en todos esos hogares hay un *router*). Tendríamos algo así:
@@ -199,13 +206,15 @@ En este momento, nuestro servidor solo responde "Hola, mundo." a cualquier solic
 Ahora bien, ¿cómo desarrollamos esto? Ya tenemos cubierta una parte: el objeto vacío que definimos con la función constructora funciona como almacén de rutas; es ahí donde vamos a ir almacenando las rutas predefinidas para nuestro servidor. Definir una ruta, en realidad, consta de dos pasos: definirla y *guardarla*, para que luego nuestro enrutador verifique que la ruta solicitada *es* un endpoint válido del servidor. 
 
 ### Definiendo endpoints
-Como mencionamos en la introducción de esta documentación, vamos a hacer dos trabajos en simultáneo: vamos a **desarrollar** un framework y además **utilizarlo** para crear un servidor. Es importante hacer esta distinción porque en términos estrictos, definir endpoints no forma parte del desarrollo *del framework*; en todo caso, es parte de lo que ese framework nos *permite hacer*. Es la distinción entre funcionamiento y uso. 
+Como mencionamos en la introducción de esta documentación, vamos a hacer dos trabajos en simultáneo: vamos a **desarrollar** un framework y además **utilizarlo** para crear un servidor. Es importante hacer esta distinción porque en términos estrictos, definir endpoints no forma parte del desarrollo *del framework*; en todo caso, es parte de lo que ese framework nos *permite hacer*, es decir, parte del trabajo de desarrollar un servidor. Es la distinción entre funcionamiento y uso. 
 
-Pensémoslo así: Express no "viene" con endpoints predefinidos, justamente porque un framework constituye el marco de trabajo para que nosotros los desarrolladores *construyamos* ese servidor *a partir* de ese marco de trabajo. El framework nos provee de las *condiciones de posibilidad* de todas las funcionalidades de un servidor, y nosotros lo utilizamos para construirlo. Hecha esta salvedad más bien técnica, vamos a empezar a definir endpoints de nuestro servidor. 
+Pensémoslo así: Express no "viene" con endpoints predefinidos, justamente porque un framework constituye el marco de trabajo para que nosotros los desarrolladores *construyamos* ese servidor *a partir* de ese marco de trabajo. El framework nos provee de las *condiciones de posibilidad* de todas las funcionalidades de un servidor, y nosotros lo utilizamos para construirlo. Hecha esta salvedad más bien técnica, vamos a empezar a definir endpoints en nuestro servidor. 
 
 Definir una ruta implica establecer una asociación entre una URL, un método HTTP y una función *handler*. Por ejemplo, imaginemos que estamos utilizando Encore para crear una aplicación que registra tareas. Podemos tener una ruta GET `/tareas` que traiga todas las tareas registradas en nuestra aplicación; pero también podemos tener una ruta POST `/tareas` que cree una tarea nueva. En este ejemplo, el endpoint es el mismo, lo que cambia es el método HTTP. 
 
-Volvamos a nuestra clase `App`. Ya definimos un objeto vacío `rutas` para almacenar las rutas y un método que levanta el servidor. Ahora vamos a definir un método que registre nuestra rutas. Como dijimos anteriormente, una ruta consta de una URL, un método y una función que maneje esa ruta (en este momento de nuestra aplicación, la única función que maneja rutas es el *callback* del método para levantar el servidor, que ya vamos a modificar). Así, tenemos que definir una función que *guarde* todos esos datos en el objeto vacío; de esta manera tenemos algo sobre lo que una posterior función verificadora efectivemente trabaje para manejar las solicitudes. Veamos este ejemplo:
+Volvamos a nuestra clase `App`. Ya definimos un objeto vacío `rutas` para almacenar las rutas y un método que levanta el servidor. Ahora vamos a definir un método que registre nuestra rutas. Como dijimos anteriormente, una ruta consta de una URL, un método y una función que maneje esa ruta (en este momento de nuestra aplicación, la única función que maneja rutas es el *callback* del método para levantar el servidor, que ya vamos a modificar). Así, tenemos que definir una función que *guarde* todos esos datos en el objeto vacío; de esta manera tenemos algo sobre lo que una posterior función verificadora efectivemente trabaje para manejar las solicitudes. 
+
+Veamos este ejemplo:
 ```javascript
 registrarRuta(ruta, handler, metodo) {
     if (!this.rutas[metodo]) {
@@ -819,6 +828,36 @@ Idealmente, deberíamos recibir en la consola la respuesta "Tarea agregada corre
 >Es importante tener en cuenta que estos datos, guardados en una lista, *no* se mantienen al reiniciar el servidor. Para que los datos persistan, es necesario guardarlos en una base de datos acorde. Sin embargo, a fines didácticos de mostrar cómo funciona el framework, es suficiente. 
 
 ## Sexta etapa. Rutas dinámicas y más métodos HTTP
+### Rutas dinámicas
+Nuestro servidor de prueba, hasta ahora, funciona sirviendo rutas fijas: trae los usuarios, trae las tareas o muestra un mensaje de bienvenida. Ahora bien, ¿qué pasaría si, en lugar de querer traer *todas* las tareas guardadas en nuestra lista, quisiéramos traer *una* sola? Para eso, tenemos que implementar en nuestro servidor soporte para *rutas dinámicas*. Típicamente, una ruta dinámica se ve así:
+```javascript
+app.registrarRuta("/usuario/:nombre", handlers.traerUsuario, "GET")
+```
+El `:` indica que `nombre` es una variable *dinámica*, de manera tal que yo puedo ingresar el nombre específico del usuario que quiero que mi servidor muestre, sin la necesidad de tener un endpoint para cada usuario, lo cual sería ineficiente y engorroso (imaginemos un servidor que pueda llegar a mostrar miles y miles de usuarios). 
+
+Por ejemplo, mi comando curl para una solicitud a esta ruta podría ser:
+```bash
+curl.exe -X GET http://localhost:3001/tarea/galapha
+```
+
+Ahora bien, ¿cómo implementamos este soporte? Vamos a ir por partes. 
+
+#### *Pattern matching* en `verificarRuta()`
+Con las rutas dinámicas enfrentamos un "problema": tenemos que lograr que una solicitud a este endpoint:
+```bash
+/usuario/galapha
+```
+se *reconozca* como una solicitud a este endpoint:
+```bash
+/usuario/:nombre
+```
+Como `/usuario/galapha` no corresponde a *ninguna* ruta almacenada en el objeto `rutas` de la clase `App`, la función verificadora no la encuentra y lanza un error 404. Para lograr que nuestro servidor reconozca `/usuario/galapha` como una "versión" de `/usuario/:nombre`, tenemos que hacer lo que se llama *pattern matching*, es decir, lograr que la función verificadora entienda que `galapha`, en el contexto de una ruta dinámica, no es más que un *valor* de `nombre`.
+
+#### Nuevo controlador: `traerUsuario()`
+
+### Más métodos HTTP: PUT y DELETE
+
+### Middleware global de manejo de errores
 
 ## Séptima etapa. Publicando Encore en npm
 
