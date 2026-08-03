@@ -1119,7 +1119,7 @@ async function editarUsuario(req, res) {
 Esta función es muy similar a `nuevaTarea()`. Básicamente, la función ejecuta un `for .. of` para ir actualizando las columnas que se enviaron en el body de la request. Luego, envía los mensajes correspondientes según se haya podido completar la solicitud o no. 
 
 ### Eliminando un registro con DELETE
-Ya implementamos rutas con métodos POST, GET y PUT. Solo nos queda el último: DELETE. Utilizaremos este verbo HTTP para eliminar un recurso de nuestra base da datos. Como ya veníamos haciendo, los pasos son dos: primero registramos la ruta en `index.js` y luego escribimos la función controladora. 
+Ya implementamos rutas con métodos POST, GET y PUT. Solo nos queda el último: DELETE, que se utiliza para eliminar un recurso de nuestra base da datos. Como ya veníamos haciendo, los pasos son dos: primero registramos la ruta en `index.js` y luego escribimos la función controladora. 
 
 Registramos una nueva ruta que elimina una tarea de la base de datos:
 ```javascript
@@ -1127,10 +1127,20 @@ app.registrarRuta("/tarea/:nombre", handlers.eliminarTarea, "DELETE")
 ```
 Ahora vamos a escribir su handler:
 ```javascript
+async function eliminarTarea(req, res) {
+    const idTarea = req.params.id
+    const consulta = "DELETE FROM tareas WHERE id = ?"
 
+    try {
+        const resultado = await conexion.execute(consulta, [idTarea])
+        res.end(JSON.stringify({mensaje: "Tarea eliminada correctamente."}, null, 2))
+    } catch (error) {
+        console.log("Error en función eliminarTarea:", error)
+        res.end(JSON.stringify({mensaje: "No se pudo eliminar la tarea de la base de datos."}))
+    }
+}
 ```
-
-### Middleware global de manejo de errores
+La función sigue la estructura que veníamos manteniendo en las demás funciones. Toma el id de los parámetros de ruta y elimina el registro que coincida con ese id. 
 
 ## Séptima etapa. Publicando Encore en npm
 
