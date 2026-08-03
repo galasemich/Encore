@@ -29,7 +29,6 @@
     - [Más métodos HTTP: PUT y DELETE](#más-métodos-http-put-y-delete)
         - [Editando un registro con PUT](#editando-un-registro-con-put)
         - [Eliminando un registro con DELETE](#eliminando-un-registro-con-delete)
-    - [Middleware global de manejo de errores](#middleware-global-de-manejo-de-errores)
 7. [Séptima etapa. Publicando Encore en npm](#séptima-etapa-publicando-encore-en-npm)
 
 ## Introducción. ¿Por qué Encore?
@@ -769,7 +768,7 @@ levantarServidor() {
                 this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
             } else {
                 res.writeHead(404)
-                res.end(JSON.stringify({mensaje: "Ruta no encontrada (verificá ruta o verbo HTTP)."}), null, 2)
+                res.end(JSON.stringify({mensaje: "Ruta no encontrada o mal formada (verificá ruta, verbo HTTP o handler)."}), null, 2)
                 return
             }
         }
@@ -1043,6 +1042,31 @@ Sin embargo, como vimos anteriormente, la función `matches()` devuelve algo que
 
 - `JSON.stringify()` convierte ese objeto a un string, perdiendo la referencia al prototipo.
 - `JSON.parse()` convierte ese string a un objeto JavaScript.
+
+Ahora, lo que queda por añadir a la función levantarServidor() es una línea que agrega los parámetros de ruta al objeto req.params, así:
+```javascript
+levantarServidor() {
+    const servidor = http.createServer((req, res) => {
+        const ejecutarRuta = () => {
+            const resultado = this.verificarRuta(req.url, req.method)
+
+            if (resultado) {
+                const [ handler, middlewares, params ] = resultado // Aquí se recuperan los parámetros de ruta que trae la función que verifica.
+                req.params = params // Acá se guardan en la propiedad params del objeto req.
+                this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
+            } else {
+                res.writeHead(404)
+                res.end(JSON.stringify({mensaje: "Ruta no encontrada o mal formada (verificá ruta, verbo HTTP y handlers)."}), null, 2)
+                return
+            }
+        }
+        
+        this.ejecutarMiddleware(req, res, 0, ejecutarRuta)
+    })
+
+    servidor.listen(puerto, () => {console.log(`Servidor corriendo en ${puerto}.`)})
+}
+```
 
 #### Nuevo controlador: `traerUsuario()`
 Para ver este nuevo *feature* en funcionamiento, vamos a crear un controlador. En nuestro archivo `handlers.js`, escribimos la siguiente función:
