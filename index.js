@@ -14,7 +14,7 @@ app.registrarRuta("/usuario/:id", handlers.traerUsuario, "GET")
 app.registrarRuta("/tarea", handlers.nuevaTarea, "POST")
 
 // Rutas DELETE
-app.registrarRuta("/tarea/:nombre", handlers.eliminarTarea, "DELETE")
+app.registrarRuta("/tarea/:id", handlers.eliminarTarea, "DELETE")
 
 // Rutas PUT
 app.registrarRuta("/usuario/:id", handlers.editarUsuario, "PUT")
