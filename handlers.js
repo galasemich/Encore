@@ -31,22 +31,12 @@ async function traerUsuario(req, res) {
         "Content-type": "application/json"
     })
 
-    try {
-        const { id } = req.params
-    } catch (error) {
-        console.log("Error en la desestructuración:", error)
-        res.end(JSON.stringify({mensaje: "El id del usuario no es válido."}))
-    }
-    
+    const idUsuario = req.params.id
     const consulta = "SELECT * FROM usuarios WHERE id = ?"
 
     try {
         const resultado = await conexion.execute(consulta, [idUsuario])
-        if (resultado) {
-            res.end(JSON.stringify(resultado[0], null, 2))
-        } else {
-            res.end(JSON.stringify({mensaje: `No se encontró el usuario con id = ${id}.`}))
-        }
+        res.end(JSON.stringify(resultado[0], null, 2))
     } catch (error) {
         console.log("Error en función traerUsuarios:", error)
         res.end(JSON.stringify({mensaje: "No se pudo completar la solicitud."}))
@@ -70,18 +60,17 @@ async function nuevaTarea(req, res) {
     }
 }
 
-function eliminarTarea(req, res) {
-    const tareaEliminar = req.params
-    const nuevoArray = []
-    
-    const tarea = tareas.filter((tarea) => {
-        let verificacion = false
-        if (!tarea.nombre === tareaEliminar.nombre) {
-            res.end(JSON.stringify({mensaje: "No se encontró la tarea solicitada."}))
-        } else {
-            
-        }
-    })
+async function eliminarTarea(req, res) {
+    const idTarea = req.params.id
+    const consulta = "DELETE FROM tareas WHERE id = ?"
+
+    try {
+        const resultado = await conexion.execute(consulta, [idTarea])
+        res.end(JSON.stringify({mensaje: "Tarea eliminada correctamente."}, null, 2))
+    } catch (error) {
+        console.log("Error en función eliminarTarea:", error)
+        res.end(JSON.stringify({mensaje: "No se pudo eliminar la tarea de la base de datos."}))
+    }
 }
 
 async function editarUsuario(req, res) {
