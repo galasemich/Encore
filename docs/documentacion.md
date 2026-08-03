@@ -424,7 +424,7 @@ async function traerUsuarios(req, res) {
 
     const consulta = "SELECT * FROM usuarios"
     const resultado = await conexion.execute(consulta)
-    res.end(JSON.stringify(usuarios, null, 2))
+    res.end(JSON.stringify(resultado[0], null, 2))
 }
 
 async function traerTareas(req, res) {
@@ -840,9 +840,14 @@ function parsearBody(req, res, next) {
 
         const finalizarParseo = () => {
             const stream = data.join()
-            const json = JSON.parse(stream)
-            req.body = json
-            next()
+            try {
+                const json = JSON.parse(stream)
+                req.body = json
+            } catch (error) {
+                console.log("Error al parsear body:", error.message)
+            } finally {
+                next()
+            }
         }
 
         req.on("data", recibirStream)
@@ -867,7 +872,7 @@ Esta condición, entonces, utiliza la propiedad `method` del objeto `req` y solo
 
 3️⃣ Ahora veamos los dos callbacks en profundidad:  
 - `recibirStream(chunk)`. Como ya adelantamos anteriormente, esta función va "recibiendo" pedazos de payload. Para almacenar estos pedazos y luego construir el payload completo para parsear, es necesario guardarlos en una lista, que definimos antes con la sentencia `let data = []`. Como dijimos, esta función se ejecuta hasta que termina de llegar todo el `body`. 
-- `finalizarParseo()`. Esta función se encarga de, primero, unir todos los elementos de la lista. Notemos que `join()` ya convierte los pedazos a string (recordemos que llegan en objetos de tipo buffer), porque internamente hace algo como `buffer.toString()`, y luego los concatena. Si quisiéramos hacer explícita esa parte, podríamos hacer algo como `chunk.toString()` antes de almacenarlo en la lista `data`. En segundo lugar, utiliza `JSON.parse()` para parsear el string y convertirlo en un objeto JavaScript, además de guardarlo en la propiedad body de `req`. Finalmente, llama a `next()` para pasar a un próximo middleware o ejecutar el controlador correspondiente. 
+- `finalizarParseo()`. Envolvemos todo el proceso en un try/catch/finally para manejar los errores de manera más eficiente. De esta manera, sea cual sea el resultado del parseo llamamos a `next()` para pasar al próximo middleware o ejecutar el controlador correspondiente. Esta función se encarga de, primero, unir todos los elementos de la lista. Notemos que `join()` ya convierte los pedazos a string (recordemos que llegan en objetos de tipo buffer), porque internamente hace algo como `buffer.toString()`, y luego los concatena. Si quisiéramos hacer explícita esa parte, podríamos hacer algo como `chunk.toString()` antes de almacenarlo en la lista `data`. En segundo lugar, utiliza `JSON.parse()` para parsear el string y convertirlo en un objeto JavaScript, además de guardarlo en la propiedad body de `req`.  
 
 Con todas estas piezas, nuestro servidor ahora es capaz de recibir información en el payload de la solicitud y hacer algo con ella. Para probar esto, vamos a hacer nuestra primera solicitud POST. 
 
@@ -903,7 +908,7 @@ Como ya anticipamos, ahora nuestro objeto `req` cuenta con la propiedad `body`, 
 {
     "nombre": "comprar comida para el gato",
     "categoria": "urgente",
-    "usuario": "galapha"
+    "id_usuario": 1
 }
 ```
 Vamos a guardar esta información en un archivo `post.json` y utilizar curl para enviarlo a nuestro servidor. Por supuesto, también podemos utilizar algún cliente externo como Postman o Thunder Client y escribir el JSON directamente en la sección body del cliente.
@@ -920,9 +925,9 @@ Idealmente, deberíamos recibir en la consola la respuesta "Tarea agregada corre
 ### Rutas dinámicas
 Nuestro servidor de prueba, hasta ahora, funciona sirviendo rutas fijas: trae los usuarios, trae las tareas o muestra un mensaje de bienvenida. Ahora bien, ¿qué pasaría si, en lugar de querer traer *todas* las tareas guardadas en nuestra lista, quisiéramos traer *una* sola? Para eso, tenemos que implementar en nuestro servidor soporte para *rutas dinámicas*. Típicamente, una ruta dinámica se ve así:
 ```javascript
-app.registrarRuta("/usuario/:nombre", handlers.traerUsuario, "GET")
+app.registrarRuta("/usuario/:id", handlers.traerUsuario, "GET")
 ```
-El `:` indica que `nombre` es una variable *dinámica*, de manera tal que yo puedo ingresar el nombre específico del usuario que quiero que mi servidor muestre, sin la necesidad de tener un endpoint para cada usuario, lo cual sería ineficiente y engorroso (imaginemos un servidor que pueda llegar a mostrar miles y miles de usuarios). 
+El `:` indica que `id` es una variable *dinámica*, de manera tal que yo puedo ingresar el id específico del usuario que quiero que mi servidor muestre, sin la necesidad de tener un endpoint para cada usuario, lo cual sería ineficiente y engorroso (imaginemos un servidor que pueda llegar a mostrar miles y miles de usuarios). 
 
 Por ejemplo, mi comando curl para una solicitud a esta ruta podría ser:
 ```bash
@@ -938,9 +943,9 @@ Con las rutas dinámicas enfrentamos un "problema". Tenemos que lograr que una s
 ```
 se *reconozca* como una solicitud a este endpoint:
 ```bash
-/usuario/:nombre
+/usuario/:id
 ```
-Como `/usuario/galapha` no corresponde a *ninguna* ruta almacenada en el objeto `rutas` de la clase `App`, la función verificadora no la encuentra y lanza un error 404. Para lograr que nuestro servidor reconozca `/usuario/galapha` como una "versión" de `/usuario/:nombre`, tenemos que hacer lo que se llama *pattern matching*, es decir, lograr que la función verificadora entienda que `galapha`, en el contexto de una ruta dinámica, no es más que un *valor* de `nombre`.
+Como `/usuario/1` no corresponde a *ninguna* ruta almacenada en el objeto `rutas` de la clase `App`, la función verificadora no la encuentra y lanza un error 404. Para lograr que nuestro servidor reconozca `/usuario/1` como una "versión" de `/usuario/:id`, tenemos que hacer lo que se llama *pattern matching*, es decir, lograr que la función verificadora entienda que `1`, en el contexto de una ruta dinámica, no es más que un *valor* de `id`.
 
 Para realizar esta tarea, vamos a recurrir a la librería [`node-match-pattern`](https://www.npmjs.com/package/node-match-path), que se encarga de realizar justamente este trabajo. Internamente, una librería como esta funciona a partir de una expresión regular. Con la función `match()`, comparamos dos strings: el endpoint "original" y la ruta solicitada. La función siempre devuelve un objeto de este estilo:
 ```javascript
@@ -978,11 +983,15 @@ verificarRuta(ruta, metodo) {
             const verificacion = match(rutaOriginal[0], ruta)
 
             if (verificacion.matches === true) {
-                const handler = this.rutas[metodo][rutaOriginal[0]].handler
-                const middlewares = this.rutas[metodo][rutaOriginal[0]].middlewares || []
-                const params = JSON.parse(JSON.stringify(verificacion.params || []))
-                
-                return [ handler, middlewares, params ]
+                try {
+                    const handler = this.rutas[metodo][rutaOriginal[0]].handler || []
+                    const middlewares = this.rutas[metodo][rutaOriginal[0]].middlewares || []
+                    const params = JSON.parse(JSON.stringify(verificacion.params || []))
+                    
+                    return [ handler, middlewares, params ]
+                } catch (error) {
+                    console.log(error.message)
+                }
             }
         }
     }
@@ -1008,7 +1017,7 @@ La primera iteración toma la primera entrada de nuestro objeto, que es el méto
     '/': { handler: [Function: inicio] },
     '/tareas': { handler: [Function: traerTareas], middlewares: [Array] },
     '/usuarios': { handler: [Function: traerUsuarios] },
-    '/usuario/:nombre': { handler: [Function: traerUsuario] }
+    '/usuario/:id': { handler: [Function: traerUsuario] }
   }
 ]
 ```
@@ -1043,8 +1052,13 @@ async function traerUsuario(req, res) {
         "Content-type": "application/json"
     })
 
-    const parametros = req.params
-    const idUsuario = parametros.id
+    try {
+        const { id } = req.params
+    } catch (error) {
+        console.log("Error en la desestructuración:", error)
+        res.end(JSON.stringify({mensaje: "El id del usuario no es válido."}))
+    }
+    
     const consulta = "SELECT * FROM usuarios WHERE id = ?"
 
     try {
@@ -1055,10 +1069,11 @@ async function traerUsuario(req, res) {
             res.end(JSON.stringify({mensaje: `No se encontró el usuario con id = ${id}.`}))
         }
     } catch (error) {
-        console.log(error)
+        console.log("Error en función traerUsuarios:", error)
         res.end(JSON.stringify({mensaje: "No se pudo completar la solicitud."}))
     }
 }
+
 ```
 
 1️⃣ Lo primero que haremos es acceder a los datos que tenemos almacenados en la propiedad `params` del objeto `req`, gracias a cómo parseamos anteriormente los parámetros de ruta. 
@@ -1075,10 +1090,43 @@ De esta manera, logramos acceder a los valores dinámicos de los parámetros de 
 Hasta ahora hemos desarrollado endpoints con los métodos GET y POST. En los servidores reales, habitualmente es necesario eliminar o editar algún recurso. Para eso, vamos a registrar algunas rutas con estos métodos. 
 
 ### Editando un registro con PUT
-En index.js, agregamos una nueva ruta:
+En `index.js`, agregamos una nueva ruta:
+```javascript
+app.registrarRuta("/usuario/:id", handlers.editarUsuario, "PUT")
 ```
+Esta ruta nos permitirá, entonces, editar la información de un usuario. Vamos a enviar las categorías a actualizar en el body de la request. 
 
+Ahora vamos a implementar el controlador que se ejecuta con este endpoint. En el archivo `handlers.js`, escribimos esta función:
+```javascript
+async function editarUsuario(req, res) {
+   res.writeHead(200, {
+        "Content-type": "application/json"
+    })
+
+    const idUsuario = req.params.id
+
+    for (const par of Object.entries(req.body)) {
+        const columna = par[0]
+        const dato = par[1]
+
+        const consulta = `UPDATE usuarios SET ${columna} = ? WHERE id = ?`
+        
+        try {
+            const resultado = await conexion.execute(consulta, [dato, idUsuario])
+
+            if (resultado[0]) {
+                res.end(JSON.stringify({mensaje: "Usuario actualizad correctamente."}))
+            } else {
+                res.end(JSON.stringify({mensaje: `No se encontró la tarea con id = ${id}.`}))
+            }
+        } catch (error) {
+            console.log("Error en la consulta a la base de datos:", error)
+            res.end(JSON.stringify({mensaje: "No se pudo completar la solicitud."}))
+        }
+    }
+}
 ```
+Esta función es muy similar a `nuevaTarea()`. Básicamente, la función ejecuta un `for .. of` para ir actualizando las columnas que se enviaron en el body de la request. Luego, envía los mensajes correspondientes según se haya podido completar la solicitud o no. 
 
 ### Eliminando un registro con DELETE
 
