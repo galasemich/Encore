@@ -17,7 +17,7 @@ app.registrarRuta("/tarea", handlers.nuevaTarea, "POST")
 app.registrarRuta("/tarea/:nombre", handlers.eliminarTarea, "DELETE")
 
 // Rutas PUT
-app.registrarRuta("/tarea/:categoria", handlers.editarTarea, "PUT")
+app.registrarRuta("/usuario/:id", handlers.editarUsuario, "PUT")
 
 // Middlewares
 app.registrarMiddleware(middlewares.middlewareMetodo)
