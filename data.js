@@ -1,13 +1,11 @@
-const usuarios = [
-    {nombreUsuario: "galapha", email: "gala@mail.com"},
-    {nombreUsuario: "juanp", email: "juanp@mail.com"},
-    {nombreUsuario: "mariag", email: "mariag@mail.com"}
-]
+import mysql from "mysql2"
+import "dotenv/config"
 
-const tareas = [
-    {nombre: "Hacer la compra", categoria: "Urgente", usuario: "galapha"},
-    {nombre: "Arreglar calefón", categoria: "Puede esperar", usuario: "juanp"},
-    {nombre: "Terminar monografía", categoria: "Urgente", usuario: "mariag"}
-]
+const conexion = mysql.createPool({
+    host: process.env.HOST,
+    user: process.env.USER,
+    password: process.env.PASSWORD,
+    database: process.env.DATABASE,
+}).promise()
 
-export { usuarios, tareas }
+export { conexion }
