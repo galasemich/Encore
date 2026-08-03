@@ -1,5 +1,4 @@
 import http from "http"
-import { usuarios, tareas } from "./data.js"
 
 function middlewareMetodo(req, res, next) {
     console.log(`Método ${req.method}, URL ${req.url}`)
