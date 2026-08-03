@@ -28,11 +28,15 @@ class App {
                 const verificacion = match(rutaOriginal[0], ruta)
 
                 if (verificacion.matches === true) {
-                    const handler = this.rutas[metodo][rutaOriginal[0]].handler
-                    const middlewares = this.rutas[metodo][rutaOriginal[0]].middlewares || []
-                    const params = JSON.parse(JSON.stringify(verificacion.params || []))
-                    
-                    return [ handler, middlewares, params ]
+                    try {
+                        const handler = this.rutas[metodo][rutaOriginal[0]].handler
+                        const middlewares = this.rutas[metodo][rutaOriginal[0]].middlewares || []
+                        const params = JSON.parse(JSON.stringify(verificacion.params || []))
+                        
+                        return [ handler, middlewares, params ]
+                    } catch (error) {
+                        console.log(error.message)
+                    }
                 }
             }
         }
