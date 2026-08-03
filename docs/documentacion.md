@@ -27,6 +27,8 @@
         - [*Pattern matching* en `verificarRuta()`](#pattern-matching-en-verificarruta)
         - [Nuevo controlador: `traerUsuario()`](#nuevo-controlador-traerusuario)
     - [Más métodos HTTP: PUT y DELETE](#más-métodos-http-put-y-delete)
+        - [Editando un registro con PUT](#editando-un-registro-con-put)
+        - [Eliminando un registro con DELETE](#eliminando-un-registro-con-delete)
     - [Middleware global de manejo de errores](#middleware-global-de-manejo-de-errores)
 7. [Séptima etapa. Publicando Encore en npm](#séptima-etapa-publicando-encore-en-npm)
 
@@ -70,10 +72,10 @@ servidor.listen(puerto, () => {console.log(`Servidor corriendo en ${puerto}.`)})
 ```
 Este es un servidor muy simple que envía un status code de 200 (OK) y un mensaje genérico a cualquier *request*. El paso a paso, entonces, es:
 
-1. Importar el módulo.
-2. Definir un puerto (habitualmente, en desarrollo, se usa el puerto 3000). Otra opción es definir el puerto en un archivo `.env` y luego traerlo con `dotenv`.
-3. Crear el servidor con la función que nos provee `http`. 
-4. Poner el servidor a escuchar *requests* en el puerto seleccionado. 
+1️⃣ Importar el módulo.  
+2️⃣ Definir un puerto (habitualmente, en desarrollo, se usa el puerto 3000). Otra opción es definir el puerto en un archivo `.env` y luego traerlo con `dotenv`.  
+3️⃣ Crear el servidor con la función que nos provee `http`.   
+4️⃣ Poner el servidor a escuchar *requests* en el puerto seleccionado.   
 
 La función `createServer` toma como parámetro una función *callback* que a su vez usar `req` y `res` como parámetros. Esta función se ejecuta *cada vez que nuestro servidor recibe una solicitud*. Esto es fundamental porque el objeto `req` nos permite acceder a datos importantes sobre las *requests* (como la URL o el método HTTP), como así también el objeto `res` nos permite leer información sobre la respuesta que va a dar el servidor. Veremos estos conceptos en los próximos apartados. 
 
@@ -101,8 +103,8 @@ res.end("Hola, mundo.")
 ```
 Como ya dijimos, nuestro servidor ejecuta una función *callback* cada vez que recibe una solicitud. Esa función *callback*, como vemos en el ejemplo anterior, toma el objeto `res` (es decir, la respuesta) y hace dos cosas:
 
-1. Envía un status code.
-2. Envía un string y cierra la respuesta.
+1️⃣ Envía un status code.  
+2️⃣ Envía un string y cierra la respuesta.
 
 Los status code son fundamentales porque "hablan" por nosostros. Forman parte de un código compartido entre programadores, dado que sabemos que un 200 representa una solicitud exitosa, mientras que un 404 nos dice que la ruta no fue encontrada (el famoso Not Found Error 404). Por ejemplo, si nuestra aplicación backend quiere comunicar al equipo de frontend que se creó un recurso nuevo existosamente, podría enviar, en el cuerpo de la respuesta, un status code 201. Así, no tendría que enviar ningún mensaje escrito, por ejemplo algo como "Usuario registrado correctamente"; la comunicación entre equipos se torna así más limpia, dado que parte de códigos compartidos por los desarrolladores. 
 
@@ -111,8 +113,8 @@ El método `res.end` envía el *body* de la respuesta. En este caso, simplemente
 ### Analizando encabezados de una solicitud y de una respuesta
 Para acceder a los encabezados de una **respuesta** tenemos dos opciones:
 
-1. Podemos usar un cliente como Thunder Client o Postman y acceder a los encabezados en la pestaña Headers del apartado de la respuesta. 
-2. También podemos usar el navegador. En este caso, es necesario recurrir a las DevTools. Vamos al apartado Network --> click en *request* --> *response* Headers. 
+1️⃣ Podemos usar un cliente como Thunder Client o Postman y acceder a los encabezados en la pestaña Headers del apartado de la respuesta.   
+2️⃣ También podemos usar el navegador. En este caso, es necesario recurrir a las DevTools. Vamos al apartado Network --> click en *request* --> *response* Headers. 
 
 Esto es interesante porque nos permite rastrear cómo Node maneja los encabezados de una respuesta en contraste con los de una solicitud. Nosotros como desarrolladores no podemos acceder a los *headers* directamente con un `console.log(res.headers)`, como sí podemos hacer un `console.log(req.headers)`. ¿Por qué se produce esa asimetría? Básicamente, porque Node entiende que los encabezados de una *solicitud* constituyen información que el servidor consume, y que son fundamentales para manejarla correctamente, pero no considera lo mismo de los encabezados de una *respuesta*. 
 
@@ -153,9 +155,9 @@ class App {
 ```
 Desglosemos el código:
 
-1. Primero definimos una clase `App` que representa nuestra aplicación, a la que luego le agregaremos métodos específicos para definir su comportamiento. 
-2. Utilizamos una función constructora para definir un objeto vacío. Notemos la importancia del `this`: `this` permite que, cuando instanciemos la clase, los métodos estén disponibles para ese nuevo objeto. Si solo usáramos una variable local, no podríamos luego trabajar libremente con esa instancia de la clase `App`. Así, cuando luego instanciemos la clase, crearemos un objeto vacío `rutas`. 
-3. ¿Para qué un objeto vacío? La idea es que, en ese objeto vacío, nuestro servidor almacene las rutas que vamos a predefinir para nuestra aplicación. 
+1️⃣ Primero definimos una clase `App` que representa nuestra aplicación, a la que luego le agregaremos métodos específicos para definir su comportamiento.   
+2️⃣ Utilizamos una función constructora para definir un objeto vacío. Notemos la importancia del `this`: `this` permite que, cuando instanciemos la clase, los métodos estén disponibles para ese nuevo objeto. Si solo usáramos una variable local, no podríamos luego trabajar libremente con esa instancia de la clase `App`. Así, cuando luego instanciemos la clase, crearemos un objeto vacío `rutas`.   
+3️⃣ ¿Para qué un objeto vacío? La idea es que, en ese objeto vacío, nuestro servidor almacene las rutas que vamos a predefinir para nuestra aplicación.   
 
 Para levantar nuestro servidor, vamos a incorporar entonces la función `createServer()`; ahora ya no en nuestro archivo principal `index.js` sino en la clase `App`. De esta manera, nuestra clase `App` ahora tiene un poco más de cuerpo:
 ```javascript
@@ -202,8 +204,8 @@ Si implementáramos un enrutador en nuestro proyecto, se encargaría dar el prim
 
 En este momento, nuestro servidor solo responde "Hola, mundo." a cualquier solicitud. ¿Tiene sentido que, si yo hiciera una solicitud a un endpoint para, por ejemplo, traer todos los usuarios registrados en mi aplicación, el servidor me responda con ese mensaje? Evidentemente, no. Entonces, para que nuestro servidor responda de manera funciona, necesitamos dos cosas: 
 
-1. Definir los endpoints (con su método y ruta asociados).
-2. Definir las funciones que se ejecutan cuando se hace una solicitud a esos endpoints. 
+1️⃣ Definir los endpoints (con su método y ruta asociados).  
+2️⃣ Definir las funciones que se ejecutan cuando se hace una solicitud a esos endpoints.   
 
 Ahora bien, ¿cómo desarrollamos esto? Ya tenemos cubierta una parte: el objeto vacío que definimos con la función constructora funciona como almacén de rutas; es ahí donde vamos a ir almacenando las rutas predefinidas para nuestro servidor. Definir una ruta, en realidad, consta de dos pasos: definirla y *guardarla*, para que luego nuestro enrutador verifique que la ruta solicitada *es* un endpoint válido del servidor. 
 
@@ -231,14 +233,15 @@ Esta función define tres parámetros: `ruta`, `handler` y `metodo`. Básicament
 > Importante: por el momento no vamos a definir los handlers específicamente. Por ahora, solo es importante saber que el servidor ejecutará una función correspondiente a cada ruta, por eso es necesario guardar ese dato. En el próximo apartado nos ocuparemos de ello. 
 
 El cuerpo de la función define una condición que es la que efectivamente *guarda* la ruta en el objeto `rutas`. Veamos el paso a paso. 
-1. Filtra primero por método, dado que intenta buscar en el objeto algo como
+
+1️⃣ Filtra primero por método, dado que intenta buscar en el objeto algo como  
 ```javascript
 { 
     "GET": {}
 }
 ```
-2. Si no encuentra el método, lo crea. 
-3. Luego guarda la ruta. Así, el objeto quedaría de la siguiente manera:
+2️⃣ Si no encuentra el método, lo crea.   
+3️⃣ Luego guarda la ruta. Así, el objeto quedaría de la siguiente manera:  
 ```javascript
 {
     "GET": 
@@ -273,9 +276,9 @@ app.registrarRuta("/usuarios", traerUsuarios, "GET")
 
 Luego de las importaciones necesarias y de crear nuestra objeto `app`, instancia de la clase `App`, ahora vamos a recurrir al método `registrarRuta` para registrar tres rutas. Siguiendo el ejemplo de una aplicación para registrar tareas, tendremos: 
 
-1. GET `/` --> ruta por defecto de nuestro servidor. Solo mostrará un mensaje de bienvenida. 
-2. GET `/tareas` --> ruta que lista todas las tareas registradas por un usuario. 
-3. GET `/usuarios` --> ruta que lista todos los usuarios registrados en la aplicación. 
+1️⃣ GET `/` --> ruta por defecto de nuestro servidor. Solo mostrará un mensaje de bienvenida.   
+2️⃣ GET `/tareas` --> ruta que lista todas las tareas registradas por un usuario.   
+3️⃣ GET `/usuarios` --> ruta que lista todos los usuarios registrados en la aplicación.   
 
 > Dado que todavía no implementamos la lectura del *body* de una solicitud ni el soporte para parámetros de ruta, todavía no podemos registrar rutas de tipo POST, PUT o DELETE. 
 
@@ -316,62 +319,131 @@ levantarServidor() {
 }
 ```
 Repasemos el código.
-1. El servidor está definido con `createServer`.  
-2. Ahora, el agregado es el siguiente: llamamos a la función `verificarRuta` y le pasamos dos argumentos, `req.url` y `req.method` que son, como sus nombres lo indican, las dos propiedades de la solicitud que necesita la función verificadora. 
-3. Si la función verificadora encontró en el objeto de rutas un objeto que combine la ruta y el método que le pasamos, devuelve la función asociada a esa combinación de ruta y método. En ese caso, enviamos un código de status 200 y llamamos a ese *handler*. 
-4. Si no lo encuentra, devuelve un error 404. 
+
+1️⃣ El servidor está definido con `createServer`.    
+2️⃣ Ahora, el agregado es el siguiente: llamamos a la función `verificarRuta` y le pasamos dos argumentos, `req.url` y `req.method` que son, como sus nombres lo indican, las dos propiedades de la solicitud que necesita la función verificadora.   
+3️⃣ Si la función verificadora encontró en el objeto de rutas un objeto que combine la ruta y el método que le pasamos, devuelve la función asociada a esa combinación de ruta y método. En ese caso, enviamos un código de status 200 y llamamos a ese *handler*.   
+4️⃣ Si no lo encuentra, devuelve un error 404.   
 
 🧠 ¿Por qué estamos pasando el objeto `req` ahora, si no parece ser necesario? Nuestro servidor, por el momento, no acepta rutas dinámicas ni lee el *body* de las *requests*, pero más adelante lo hará, y en esos casos necesitaremos sí o sí el objeto `req`; es mejor pasarlo desde el inicio y luego usarlo sin problemas, que tener que modificar el código luego. 
 
 Si bien nuestro servidor avanzó considerablemente, todavía no funciona bien. ¿Por qué? Porque todavía no definimos esas cuatro funciones que mencionamos anteriormente. Vamos paso a paso. 
 
-1. En primer lugar vamos a definir algunos datos de ejemplo para poder devolverlos cuando recibamos solicitudes. Como este es un caso de prueba, para mostrar el funcionamiento del framework, vamos a optar por hardcodear algunos arreglos en un archivo `data.js` y luego importarlo en otros archivos. Por supuesto, en entornos reales esto no se hace así y es necesario guardar los datos típicamente en una base de datos, pero por el momento nos vamos a conformar con escribir un pequeño archivo `data.js` que contenga estos datos:
-```javascript
-const usuarios = [
-    {nombreUsuario: "galapha", email: "gala@mail.com"},
-    {nombreUsuario: "juanp", email: "juanp@mail.com"},
-    {nombreUsuario: "mariag", email: "mariag@mail.com"}
-]
+1️⃣ En primer lugar, vamos a crear una pequeña base de datos MySQL para guardar la información que vayamos cargando en nuestra aplicación. Para eso, vamos a abrir un archivo `schema.sql` para cargar el código SQL que luego insertaremos en terminal:
+```sql
+CREATE DATABASE app_tareas;
+USE app_tareas;
 
-const tareas = [
-    {nombre: "Hacer la compra", categoria: "Urgente", usuario: "galapha"},
-    {nombre: "Arreglar calefón", categoria: "Puede esperar", usuario: "juanp"},
-    {nombre: "Terminar monografía", categoria: "Urgente", usuario: "mariag"}
-]
+CREATE TABLE usuarios
+(id integer PRIMARY KEY AUTO_INCREMENT,
+nombre varchar(255) NOT NULL,
+email varchar(255) NOT NULL);
 
-export { usuarios, tareas }
+CREATE TABLE tareas
+(id integer PRIMARY KEY AUTO_INCREMENT,
+nombre VARCHAR(255) NOT NULL,
+categoria VARCHAR(255) NOT NULL,
+id_usuario INTEGER NOT NULL,
+
+FOREIGN KEY (id_usuario) REFERENCES usuarios(id));
+
+INSERT INTO usuarios (nombre, email) VALUES
+('pedro', 'pedro@mail.com'),
+('galapha', 'galapha@email.com');
+
+INSERT INTO tareas (nombre, categoria, id_usuario) VALUES 
+('terminar monografía', 'urgente', 1), 
+('arreglar calefón', 'puede esperar', 2);
 ```
-La idea, entonces, es que cuando el cliente haga un GET a `/usuarios` nuestro servidor responda con la lista de usuarios. Lo mismo ocurrirá con el endpoint `/tareas`, pero con la lista `tareas`. 
 
-2. En segundo lugar, vamos a definir tres funciones sencillas que respondan a cada uno de los endpoints. Es decir, vamos a finalmente definir los *handlers* de estas rutas: 
+Con este código, crearemos la base de datos app_tareas y agregaremos dos tablas: una para usuarios y una para tareas.
+
+>Para poder correr este código en terminal, hay que tener instalado el cliente de MySQL. Es fundamental, también, tenerlo instalado como Servicio (por lo menos en Windows) dado que, de lo contrario, no podremos conectarnos.
+
+Para confirmar que la base de datos se haya creado correctamente, podemos correr el comando `show databases;`, de manera que, si todo salió bien, obtendremos este resultado en terminal:
+```bash
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| app_tareas         |
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+```
+También podemos correr algunos comandos de prueba sencillos para familiarizarnos con el cliente. Por ejemplo, para mostrar todas las tareas cargadas, podemos escribir esto:
+```bash
+mysql> select * from tareas;
++----+---------------------+---------------+------------+
+| id | nombre              | categoria     | id_usuario |
++----+---------------------+---------------+------------+
+|  1 | terminar monografía | urgente       |          1 |
+|  2 | arreglar calefón    | puede esperar |          2 |
++----+---------------------+---------------+------------+
+```
+
+2️⃣ Ahora nos tocaría escribir los handlers que interactúen con esos datos. Por ejemplo, la función `traerTareas()` debería justamente ejecutar el SQL que mencionamos justo en el paso anterior (`SELECT * FROM tareas`). Ahora bien, para que nuestras funciones puedan correr ese código, necesitamos crear un objeto de conexión que pueda ser importado en el archivo `handlers.js`, y que cada función ejecute la sentencia SQL que corresponda, si aplica. 
+
+>Nota. En una implementación más robusta de un servidor, en realidad es la capa de **modelos** la que se encarga de interactuar con las bases de datos. Sin embargo, para este servidor de prueba, sencillo, que solamente busca mostrar el framework en acción, creo suficiente correr el SQL directamente en el controlador. 
+
+Vamos a crear un archivo `data.js` y vamos escribir este código:
 ```javascript
-import { usuarios, tareas } from "./data.js"
+import mysql from "mysql2"
+import "dotenv/config"
 
-function traerUsuarios(req, res) {
-    res.writeHead(200, {
-        "Content-type": "application/json"
-    })
-    res.end(JSON.stringify(usuarios, null, 2))
-}
+const conexion = mysql.createPool({
+    host: process.env.HOST,
+    user: process.env.USER,
+    password: process.env.PASSWORD,
+    database: process.env.DATABASE,
+}).promise()
 
-function traerTareas(req, res) {
-    res.writeHead(200, {
-        "Content-type": "application/json"
-    })
-    res.end(JSON.stringify(tareas, null, 2))
-}
+export { conexion }
+```
+Primero tenemos que instalar (si no los tenemos instalados aún) los módulos mysql2 y dotenv. Utilizaremos el primero para interactuar con el cliente MySQL y el segundo para traer la información sensible de un archivo .env. Cada persona que quiera correr este código deberá tener un archivo .env en su máquina, de manera que dotenv pueda importar de ahí los datos necesarios. 
+
+> Habitualmente, para proyectos locales, podemos usar el user root y una password vacía. Eso lo configuramos cuando entramos a MySQL desde la terminal, con algo como
+```bash
+mysql -u root -p
+Enter password: // acá apretamos Enter
+```
+El objeto `conexion` está ahora disponible para importar en nuestro archivo de funciones controladoras, que vamos a escribir en este momento.  
+```javascript
+import { conexion } from "./data.js"
 
 function inicio(req, res) {
-    res.writeHead(200, {
-        "Content-type": "application/json"
-    })
     res.end(JSON.stringify({mensaje: "Bienvenidos a mi servidor creado con Encore."}), null, 2)
 }
 
-export default { traerTareas, traerUsuarios, inicio }
+async function traerUsuarios(req, res) {
+    res.writeHead(200, {
+        "Content-type": "application/json"
+    })
+
+    const consulta = "SELECT * FROM usuarios"
+    const resultado = await conexion.execute(consulta)
+    res.end(JSON.stringify(usuarios, null, 2))
+}
+
+async function traerTareas(req, res) {
+    res.writeHead(200, {
+        "Content-type": "application/json"
+    })
+
+    const consulta = "SELECT * FROM tareas"
+    const resultado = await conexion.execute(consulta)
+
+    res.end(JSON.stringify(resultado[0], null, 2))
+}
+
+export { inicio, traerUsuarios, traerTareas }
 ```
 
-La implementación es muy sencilla, pero nos permite tener nuestro servidor andando y que cada ruta "haga algo diferente", no que envíen solo un "Hola, mundo." como hacían anteriormente. Cada función tiene una tarea: `traerUsuarios` devuelve la lista de usuarios, `traerTareas` la lista de tareas e `inicio` manda un mensaje de bienvenida. Notemos que no podemos simplemente hacer un `res.end(usuarios)`, dado que `res.end()`admite típicamente strings (o buffers). Para eso usaremos la función nativa de JavaScript que nos permite convertir un objeto a un string con formato JSON. La función `JSON.stringify()` acepta tres parámetros: el objeto a convertir, un *replacer*, que altera el comportamiento del proceso de conversión (que aquí definimos como `null` porque no es relevante en este contexto) y un número o string que representa la indentación que queremos darle a la cadena final. 
+Notemos la importancia de utilizar `async/await`. Como nuestro objeto conexion nos devuelve una promesa, es necesario utilizar `await` para "esperar" que llegue el resultado de la consulta. Si no "esperamos" el resultado, obtendremos un `undefined` y no podremos mostrar la información requerida. La única que no es una función asincrónica es la función `inicio()`, porque no consulta a la base de datos (solo muestra un mensaje de bienvenida estático).
+
+La implementación es muy sencilla, pero nos permite tener nuestro servidor andando y que cada ruta "haga algo diferente", no que envíen solo un "Hola, mundo." como hacían anteriormente. Cada función tiene una tarea: `traerUsuarios` devuelve los usuarios en la base de datos, `traerTareas` las tareas e `inicio` manda un mensaje de bienvenida. Notemos que no podemos simplemente hacer un `res.end(resultado[0])`, dado que `res.end()`admite típicamente strings (o buffers), y lo que estamos devolviendo es un arreglo. Para eso usaremos la función nativa de JavaScript que nos permite convertir un objeto a un string con formato JSON. La función `JSON.stringify()` acepta tres parámetros: el objeto a convertir, un *replacer*, que altera el comportamiento del proceso de conversión (que aquí definimos como `null` porque no es relevante en este contexto) y un número o string que representa la indentación que queremos darle a la cadena final. 
 
 También es importante notar que, en estas funciones, definimos un *header* `Content-type`. ¿Por qué es importante esto? Porque, en realidad, nosotros desde el servidor no enviamos JSON "puro", sino que enviamos algo parecido que el cliente puede *interpretar* como JSON. Cuando el cliente lee el *header* de `Content-type`, puede parsear el contenido de la respuesta con algo como `JSON.parse()` e interpretar los datos en ese formato. Cuando en Express hacemos algo como
 ```javascript
@@ -399,7 +471,7 @@ Básicamente, la idea es que con el método `use`, definido en la clase Express,
 
 Ahora bien, en Encore, tanto la responsabilidad de levantar el servidor como de enrutar recaen en la clase `App`. Esto no es problemático porque Encore se trata de un *framework* minimalista, pero sí es cierto que en futuras versiones sería algo a tener en cuenta para mejorar el trabajo y hacerlo más modular, un concepto fundamental en programación que hace mucho más mantenibles los programas y permite escalarlos mucho más fácilmente. ¿Cómo podríamos, entonces, implementar esto en una hipotética segunda versión de Encore?
 
-1. Definiríamos una clase `Router`, algo así:
+1️⃣ Definiríamos una clase `Router`, algo así:  
 ```javascript
 class Router {
     constructor() {
@@ -407,7 +479,7 @@ class Router {
     }
 }
 ```
-2. Luego, definiríamos las rutas en un archivo separado al `index.js`, así:
+2️⃣ Luego, definiríamos las rutas en un archivo separado al `index.js`, así:  
 ```javascript
 const rutasUsuarios = new Router()
 
@@ -418,11 +490,11 @@ export { rutasUsuarios }
 ```
 La idea de la modularidad es que los métodos de enrutamiento estén definidas en el objeto `Router`, no en el objeto `App`. 
 
-3. Ahora bien, ¿cómo hace nuestro servidor para verificar que las rutas existen, si en realidad estamos agregando las rutas registradas al objeto vacío de cada objeto Router? Tendríamos que implementar algo que *conecte* ambos objetos, el de cada grupo de rutas con el objeto de rutas general. Podríamos definir un método `use` en `App` (como hace Express) para pasar las rutas del objeto propio al objeto rutas de App, algo así:
+3️⃣ Ahora bien, ¿cómo hace nuestro servidor para verificar que las rutas existen, si en realidad estamos agregando las rutas registradas al objeto vacío de cada objeto Router? Tendríamos que implementar algo que *conecte* ambos objetos, el de cada grupo de rutas con el objeto de rutas general. Podríamos definir un método `use` en `App` (como hace Express) para pasar las rutas del objeto propio al objeto rutas de App, algo así:  
 ```javascript
 app.use(rutaProductos)
 ```
-4. Dentro de App, el método `use` usaría el método `Object.assign()` para combinar los dos objetos. Así, el servidor "busca" las rutas en el objeto rutas de `App`, que contiene ahora todas las rutas. 
+4️⃣ Dentro de App, el método `use` usaría el método `Object.assign()` para combinar los dos objetos. Así, el servidor "busca" las rutas en el objeto rutas de `App`, que contiene ahora todas las rutas.   
 
 > Nota sobre la arquitectura de la aplicación. En lo que venimos describiendo, App debería importar la función `registrarRuta`, dado que esta "vive" en Router, no en `App`. Podríamos pensar en que esto "rompería" el principio de modularidad, pero no es tan así si pensamos en la dirección en la que se produce la importación: `App`, clase más "general" del framework, importa de Router, y no al revés. No es que `verificarRuta` "vive" en `App`, sino que `App` la importa porque la necesita. 
 
@@ -437,9 +509,10 @@ funcionMiddleware(req, res, next)
 ```
 Un *middleware* hace su trabajo y luego llama a `next()` para seguir la cadena de ejecución, de manera que la solicitud pueda llegar a su función controladora. Los *middlewares* se ejecutan de manera secuencial, en orden; esto es importante, y veremos cómo ingluye en la manera de implementar el soporte para *middlewares* en nuestro *framework*. 
 
-¿Qué vamos a necesitar para implementar esta funcionalidad?
-1. Una función que, análoga a *registrarRuta*, permita registrar *middlewares*.
-2. Una función que ejecute los *middlewares* en orden. 
+¿Qué vamos a necesitar para implementar esta funcionalidad?  
+
+1️⃣ Una función que, análoga a `registrarRuta`, permita registrar *middlewares*.  
+2️⃣ Una función que ejecute los *middlewares* en orden.   
 
 ### Implementando `registrarMiddleware()`
 Como mencionábamos anteriorimente, necesitamos escribir una función que registre los *middlewares*, así como más adelante en nuestro recorrido implementamos una función que registra las rutas de nuestro servidor. El procedimiento es similar: en primer lugar, vamos a necesitar un "lugar" donde almacenar esos *middlewares*. Si para almacenar las rutas habíamos creado un objeto rutas, para almacenar los *middlewares* vamos a crear un *array* *middlewares*. ¿Por qué un arreglo? Porque los arreglos nos permiten trabajar con *índices*, de manera que la ejecución sencuencial de los *middlewares* va a ser mucho más sencilla. De esta manera, la función constructora queda ahora así:
@@ -487,9 +560,9 @@ Es una función sencilla que imprime en consola el método y la URL de la solici
 
 El orden en el que escribimos todas las llamadas a los métodos de la clase `App` es importante:
 
-1. Primero definimos las rutas.
-2. Luego definimos los *middlewares*.
-3. Luego levantamos el servidor.
+1️⃣ Primero definimos las rutas.  
+2️⃣ Luego definimos los *middlewares*.  
+3️⃣ Luego levantamos el servidor.  
 
 Los pasos 1 y 2 pueden invertirse, pero sí o sí deben escribirse *antes* de levantar el servidor. La razón es que *dentro* de la función que levanta el servidor tendremos que verificar rutas y *middlewares*, de manera que debemos haberlos definido *antes* para poder hacer la verificación. 
 
@@ -515,9 +588,10 @@ levantarServidor() {
 }
 ```
 Desglosemos el código:
-1. Primero definimos (pero todavía no llamamos) una **función callback** que va a ejecutarse cada vez que llega una solicitud a nuestro servidor. Nombramos a esa función callback `ejecutarRuta` para hacerlo más claro. Dentro de esta función callback verificamos la ruta de la solicitud, ejecutamos el controlador y enviamos la respuesta correspondiente al cliente. 
-2. En segundo lugar, llamamos a la función `ejecutarMiddleware()`, pasándole los objetos `req` y `res` como argumentos, además de un `0` (ya veremos por qué) y el propio callback que definimos primero. 
-3. Veamos de cerca la función `ejecutarMiddleware()`:
+
+1️⃣ Primero definimos (pero todavía no llamamos) una **función callback** que va a ejecutarse cada vez que llega una solicitud a nuestro servidor. Nombramos a esa función callback `ejecutarRuta` para hacerlo más claro. Dentro de esta función callback verificamos la ruta de la solicitud, ejecutamos el controlador y enviamos la respuesta correspondiente al cliente.   
+2️⃣ En segundo lugar, llamamos a la función `ejecutarMiddleware()`, pasándole los objetos `req` y `res` como argumentos, además de un `0` (ya veremos por qué) y el propio callback que definimos primero.   
+3️⃣ Veamos de cerca la función `ejecutarMiddleware()`:  
 ```javascript
 ejecutarMiddleware(req, res, index, callback) {
     if (index === this.middlewares.length) {
@@ -551,11 +625,12 @@ Si a la función `ejecutarMiddleware()` le pasamos `0` como índice (para empeza
 En la introducción de esta cuarta etapa, dijimos que un *middleware* es una función que primero ejecuta su código y luego le pasa el "control" a otra función; en términos de lo que estamos desarrollando ahora, "pasar el control" es básicamente ejecutar el siguiente *middleware* del arreglo. ¿Cómo logramos eso? Aumentando el valor de `index` en 1. Por eso la definición de la función flecha `next()` es, en última instancia, volver a llamar a `ejecutarMiddleware()` pero con `index + 1` como argumento. Es un proceso recursivo: definimos cuál es el siguiente *middleware* a ejecutar y llamamos a `ejecutarMiddleware()` con ese *middleware* pasado como argumento. 
 
 De esta manera, entonces, repasemos todo el flujo de definición y ejecución:
-1. Creamos un *array* `middlewares` para almacenar los *middlewares* que definamos. 
-2. Creamos una función que guarda los *middlewares* en ese *array*. 
-3. Definimos una función que ejecuta, recursivamente, los *middlewares* globales que guardamos en el arreglo. 
-4. En la función que crea el servidor, llamamos a la función del punto 3 y ejecutamos los *middlewares* uno detrás del otro. 
-5. Cuando se ejecutaron todos los *middlewares*, ejecutamos el controlador asociado a la ruta de la solicitud. 
+
+1️⃣ Creamos un *array* `middlewares` para almacenar los *middlewares* que definamos.   
+2️⃣ Creamos una función que guarda los *middlewares* en ese *array*.   
+3️⃣ Definimos una función que ejecuta, recursivamente, los *middlewares* globales que guardamos en el arreglo.   
+4️⃣ En la función que crea el servidor, llamamos a la función del punto 3 y ejecutamos los *middlewares* uno detrás del otro.   
+5️⃣ Cuando se ejecutaron todos los *middlewares*, ejecutamos el controlador asociado a la ruta de la solicitud.   
 
 ### Primera prueba de integración
 Con lo que desarrollamos hasta ahora, podemos realizar una prueba para ver cómo se comportan los *middlewares* y los controladores. Para ver mejor el funcionamiento del orden secuencial de los middlewares, vamos a registrar otro, así:
@@ -655,13 +730,13 @@ La función intenta encontrar la ruta utilizando ruta y método como argumentos.
 #### Nueva función: `ejecutarMiddlewareDeRuta()`
 Además de las modificaciones pertinentes a las funciones anteriores, vamos a implementar una nueva función para ejecutar los *middlewares* de ruta. Repasemos un poco la secuencia de ejecución que deberíamos representar en nuestro código:
 
-1. Cuando llega una request a nuestro servidor, se ejecutan primero los *middlewares* globales. 
-2. Luego se verifica la ruta enviada. 
-    - Si se encuentra:
-        - Se ejecutan los *middlewares* de ruta ➡ acá se pone en funcionamiento `ejecutarMiddlewareDeRuta()`
-        - Se ejecuta el controlador. 
-    - Si no se encuentra: 
-        - El callback devuelve una respuesta con status code 404. 
+1️⃣ Cuando llega una request a nuestro servidor, se ejecutan primero los *middlewares* globales.   
+2️⃣ Luego se verifica la ruta enviada.
+- Si se encuentra:
+    - Se ejecutan los *middlewares* de ruta ➡ acá se pone en funcionamiento `ejecutarMiddlewareDeRuta()`
+    - Se ejecuta el controlador. 
+- Si no se encuentra: 
+    - El callback devuelve una respuesta con status code 404. 
 
 La nueva función, entonces, tiene un comportamiento similar a aquella que ejecuta *middlewares* globales. Lo que cambia es, por un lado, dónde se ubica (lo veremos en el próximo apartado) y, por el otro, qué hace cuando termina de ejecutarse. Veámosla de cerca:
 ```javascript
@@ -713,9 +788,9 @@ Notemos cómo se trata de un proceso recursivo. Como sabemos, JavaScript es un l
 
 Por el contrario, a lo que hay que atender es que, en realidad, `ejecutarMiddlewareDeRuta()` está *dentro* del callback `ejecutarRuta()`, que es el que le *pasamos* a `ejecutarMiddleware()`. De esta forma, la secuencia es la deseada: 
 
-1. Primero se ejecutan los *middlewares* globales. Cuando terminan de ejecutarse (es decir, no hay más en la lista), ejecutamos el callback. 
-2. ¿Y qué es ese callback? La propia `ejecutarRuta()`. ¿Qué hace `ejecutarRuta()`? Verifica controladores y *middlewares*. 
-3. Si encuentra la ruta, llama a `ejecutarMiddlewaresDeRuta()`. Los ejecuta todos hasta llegar al último y ahí pasa al controlador.
+1️⃣ Primero se ejecutan los *middlewares* globales. Cuando terminan de ejecutarse (es decir, no hay más en la lista), ejecutamos el callback.   
+2️⃣ ¿Y qué es ese callback? La propia `ejecutarRuta()`. ¿Qué hace `ejecutarRuta()`? Verifica controladores y *middlewares*.   
+3️⃣ Si encuentra la ruta, llama a `ejecutarMiddlewaresDeRuta()`. Los ejecuta todos hasta llegar al último y ahí pasa al controlador.  
 
 Acá viene lo que mencionábamos antes de que nos conviene pasar una lista vacía si no hay *middlewares* definidos. Veamos esta línea:
 ```javascript
@@ -780,19 +855,19 @@ function parsearBody(req, res, next) {
 
 Desglosemos el código. 
 
-1. Primero definimos un bloque condicional que evalúa el método de la solicitud. ¿Por qué es importante esto? Básicamente, porque este *middleware* (como cualquier *middleware* que definamos en Encore) puede definirse como *middleware* global o como *middleware* de ruta. La diferencia está, como sabemos, en el lugar en donde ubicamos la referencia a esa función. Ahora bien, definirlo globalmente significa que va a ejecutarse antes de que *cualquier* solicitud llegue a su controlador, y esto representa un problema para las solicitudes GET, por ejemplo, porque estas típicamente no llevan `body`. Entonces, si tratamos de parsear un `body` que llega vacío tendríamos un error. De esta manera, podemos solucionar la implementación de dos formas:
-    - Implementarlo solo en las rutas que lleven `body` (POST, PUT, DELETE, PATCH). Esto es más directo pero más engorroso y, en última instancia, ineficiente si nuestro servidor crece y tenemos muchos `endpoints` con estos métodos HTTP. 
-    - Implementarlo globalmente pero solo ejecutándolo cuando la solicitud corresponda a alguno de esos verbos HTTP (esto es lo que haremos en Encore).
+1️⃣ Primero definimos un bloque condicional que evalúa el método de la solicitud. ¿Por qué es importante esto? Básicamente, porque este *middleware* (como cualquier *middleware* que definamos en Encore) puede definirse como *middleware* global o como *middleware* de ruta. La diferencia está, como sabemos, en el lugar en donde ubicamos la referencia a esa función. Ahora bien, definirlo globalmente significa que va a ejecutarse antes de que *cualquier* solicitud llegue a su controlador, y esto representa un problema para las solicitudes GET, por ejemplo, porque estas típicamente no llevan `body`. Entonces, si tratamos de parsear un `body` que llega vacío tendríamos un error. De esta manera, podemos solucionar la implementación de dos formas:
+- Implementarlo solo en las rutas que lleven `body` (POST, PUT, DELETE, PATCH). Esto es más directo pero más engorroso y, en última instancia, ineficiente si nuestro servidor crece y tenemos muchos `endpoints` con estos métodos HTTP. 
+- Implementarlo globalmente pero solo ejecutándolo cuando la solicitud corresponda a alguno de esos verbos HTTP (esto es lo que haremos en Encore).
 
-    Esta condición, entonces, utiliza la propiedad `method` del objeto `req` y solo ejecuta la función si *no* se trata de una solicitud GET. 
+Esta condición, entonces, utiliza la propiedad `method` del objeto `req` y solo ejecuta la función si *no* se trata de una solicitud GET. 
 
-2. En este punto, antes de analizar los *callbacks* `recibirStream()` y `finalizarParseo()`, es importante discutir el método `on()`. Este método del objeto `req` (que, vale decirlo, es una instancia de la clase `IncommingMessage` del módulo `http`) se dedica a "escuchar" eventos relacionados con llegada de datos al servidor. Veamos ambos casos por separado:
-    - `req.on("data", callback)`. La idea detrás es que el callback se dispara cuando llega un evento de tipo `data`. El evento `data` implica, sin ir más lejos, que llegue el `body` de una request. Este `body` no llega todo junto, porque puede ser que sea muy grande o muy pesado, entonces llega en lo que se denominan *chunks*, es decir, "pedazos" de payload. Este callback se dispara iterativamente hasta que no haya nada más que recibir. 
-    - `req.on("end", callback)`. Así como escuchamos eventos `data` en el primer caso, en este caso el método escucha y dispara el callback cuando se produce un evento `end` que, como su nombre lo indica, le avisa a Node que terminó de llegar el `body`. ¿Cómo "sabe" esto Node? Porque llega un *chunk* vacío. Ahí, Node sabe que el payload ya llegó entero y dispara el callback de finalización. 
+2️⃣ En este punto, antes de analizar los *callbacks* `recibirStream()` y `finalizarParseo()`, es importante discutir el método `on()`. Este método del objeto `req` (que, vale decirlo, es una instancia de la clase `IncommingMessage` del módulo `http`) se dedica a "escuchar" eventos relacionados con llegada de datos al servidor. Veamos ambos casos por separado:  
+- `req.on("data", callback)`. La idea detrás es que el callback se dispara cuando llega un evento de tipo `data`. El evento `data` implica, sin ir más lejos, que llegue el `body` de una request. Este `body` no llega todo junto, porque puede ser que sea muy grande o muy pesado, entonces llega en lo que se denominan *chunks*, es decir, "pedazos" de payload. Este callback se dispara iterativamente hasta que no haya nada más que recibir. 
+- `req.on("end", callback)`. Así como escuchamos eventos `data` en el primer caso, en este caso el método escucha y dispara el callback cuando se produce un evento `end` que, como su nombre lo indica, le avisa a Node que terminó de llegar el `body`. ¿Cómo "sabe" esto Node? Porque llega un *chunk* vacío. Ahí, Node sabe que el payload ya llegó entero y dispara el callback de finalización. 
 
-3. Ahora veamos los dos callbacks en profundidad:
-    - `recibirStream(chunk)`. Como ya adelantamos anteriormente, esta función va "recibiendo" pedazos de payload. Para almacenar estos pedazos y luego construir el payload completo para parsear, es necesario guardarlos en una lista, que definimos antes con la sentencia `let data = []`. Como dijimos, esta función se ejecuta hasta que termina de llegar todo el `body`. 
-    - `finalizarParseo()`. Esta función se encarga de, primero, unir todos los elementos de la lista. Notemos que `join()` ya convierte los pedazos a string (recordemos que llegan en objetos de tipo buffer), porque internamente hace algo como `buffer.toString()`, y luego los concatena. Si quisiéramos hacer explícita esa parte, podríamos hacer algo como `chunk.toString()` antes de almacenarlo en la lista `data`. En segundo lugar, utiliza `JSON.parse()` para parsear el string y convertirlo en un objeto JavaScript, además de guardarlo en la propiedad body de `req`. Finalmente, llama a `next()` para pasar a un próximo middleware o ejecutar el controlador correspondiente. 
+3️⃣ Ahora veamos los dos callbacks en profundidad:  
+- `recibirStream(chunk)`. Como ya adelantamos anteriormente, esta función va "recibiendo" pedazos de payload. Para almacenar estos pedazos y luego construir el payload completo para parsear, es necesario guardarlos en una lista, que definimos antes con la sentencia `let data = []`. Como dijimos, esta función se ejecuta hasta que termina de llegar todo el `body`. 
+- `finalizarParseo()`. Esta función se encarga de, primero, unir todos los elementos de la lista. Notemos que `join()` ya convierte los pedazos a string (recordemos que llegan en objetos de tipo buffer), porque internamente hace algo como `buffer.toString()`, y luego los concatena. Si quisiéramos hacer explícita esa parte, podríamos hacer algo como `chunk.toString()` antes de almacenarlo en la lista `data`. En segundo lugar, utiliza `JSON.parse()` para parsear el string y convertirlo en un objeto JavaScript, además de guardarlo en la propiedad body de `req`. Finalmente, llama a `next()` para pasar a un próximo middleware o ejecutar el controlador correspondiente. 
 
 Con todas estas piezas, nuestro servidor ahora es capaz de recibir información en el payload de la solicitud y hacer algo con ella. Para probar esto, vamos a hacer nuestra primera solicitud POST. 
 
@@ -804,12 +879,25 @@ app.registrarRuta("/tarea", handlers.nuevaTarea, "POST")
 ```
 ```javascript
 // En handlers.js
-function nuevaTarea(req, res) {
-    const nuevaTarea = req.body
-    tareas.push(nuevaTarea)
-    res.end(JSON.stringify({mensaje: "Tarea agregada correctamente."}, null, 2))
+async function nuevaTarea(req, res) {
+    res.writeHead(200, {
+        "Content-type": "application/json"
+    })
+
+    const { nombre, categoria, id_usuario } = req.body
+    const consulta = "INSERT INTO tareas (nombre, categoria, id_usuario) VALUES (?, ?, ?)"
+
+    try {
+        const resultado = await conexion.execute(consulta, [nombre, categoria, id_usuario])
+        res.end(JSON.stringify({mensaje: "Tarea agregada correctamente."}, null, 2))
+    } catch (error) {
+        console.log(error)
+        res.end(JSON.stringify({mensaje: "No se pudo agregar la tarea a la base de datos."}))
+    }
 }
 ```
+En primer lugar, desestructuramos la información que viene en el body de la solicitud. Luego envolvemos la consulta en un try/catch y enviamoss el mensaje correspondiente según se haya podido agregar la tarea o no. 
+
 Como ya anticipamos, ahora nuestro objeto `req` cuenta con la propiedad `body`, que contiene el cuerpo de la `request`. En este caso, nuestro body se ve así:
 ```json
 {
@@ -825,9 +913,8 @@ El comando en terminal se vería así:
 curl.exe -X POST http://localhost:3000/tarea `
 -d "@post.json"
 ```
-Idealmente, deberíamos recibir en la consola la respuesta "Tarea agregada correctamente". Luego, podemos hacer una solicitud GET al endpoint /tareas para que nos devuelva todas las tareas. Si hicimos todo bien, deberíamos ver esa nueva tarea añadida a la lista. 
 
->Es importante tener en cuenta que estos datos, guardados en una lista, *no* se mantienen al reiniciar el servidor. Para que los datos persistan, es necesario guardarlos en una base de datos acorde. Sin embargo, a fines didácticos de mostrar cómo funciona el framework, es suficiente. 
+Idealmente, deberíamos recibir en la consola la respuesta "Tarea agregada correctamente". Luego, podemos hacer una solicitud GET al endpoint /tareas para que nos devuelva todas las tareas. Si hicimos todo bien, podríamos hacer la solicitud al endpoint que trae todas las tareas y deberíamos verla agregada. 
 
 ## Sexta etapa. Rutas dinámicas y más métodos HTTP
 ### Rutas dinámicas
@@ -855,7 +942,7 @@ se *reconozca* como una solicitud a este endpoint:
 ```
 Como `/usuario/galapha` no corresponde a *ninguna* ruta almacenada en el objeto `rutas` de la clase `App`, la función verificadora no la encuentra y lanza un error 404. Para lograr que nuestro servidor reconozca `/usuario/galapha` como una "versión" de `/usuario/:nombre`, tenemos que hacer lo que se llama *pattern matching*, es decir, lograr que la función verificadora entienda que `galapha`, en el contexto de una ruta dinámica, no es más que un *valor* de `nombre`.
 
-Para realizar esta tarea, vamos a recurrir a la librería [`node-match-pattern`](https://www.npmjs.com/package/node-match-path), que se encarga de realizar justamente este trabajo. Con la función match(), comparamos dos strings: el endpoint "original" y la ruta solicitada. La función siempre devuelve un objeto de este estilo:
+Para realizar esta tarea, vamos a recurrir a la librería [`node-match-pattern`](https://www.npmjs.com/package/node-match-path), que se encarga de realizar justamente este trabajo. Internamente, una librería como esta funciona a partir de una expresión regular. Con la función `match()`, comparamos dos strings: el endpoint "original" y la ruta solicitada. La función siempre devuelve un objeto de este estilo:
 ```javascript
 {
     matches: true, // O false, si las rutas no coinciden.
@@ -864,7 +951,7 @@ Para realizar esta tarea, vamos a recurrir a la librería [`node-match-pattern`]
 ```
 Más adelante veremos cómo resolver ese `[Objetc: null prototype]`. Lo importante, en este momento, es entender que, además de que esta librería nos permite realizar el matcheo de rutas, también nos almacena el valor de ese parámetro de ruta en una clave de objeto, lo que va a ser muy importante luego. 
 
-Por ejemplo, si hacemos la solicitudque ya mencionamos, obtenemos este objeto:
+Por ejemplo, si hacemos la solicitud que ya mencionamos, obtenemos este objeto:
 ```javascript
 {
     matches: true,
@@ -879,7 +966,7 @@ Si, por el contrario, las rutas no coinciden, obtendríamos algo así:
     params: null 
 }
 ```
-La idea es, entonces, utilizar esta funcionalidad en nuestra función `verificarRuta()`. Podríamos preguntarnos por qué no lo hacemos como un middleware global, algo que en principio parecería lógico, pero con una salvedad. Para hacer la comparación de rutas, necesitamos tener acceso a la ruta "original" de la cual la solicitud ejecuta una "versión". En una función middleware, solo tenemos acceso a la propiedad `url` del objeto `req`, que representa la ruta que viene en la solicitud, pero no tenemos con qué comparar. Por eso, para Encore decidí incluir la verificación directamente en la función `verificarRuta()`, dado que en ese scope sí tenemos acceso a toda la información necesaria. 
+La idea es, entonces, utilizar esta funcionalidad en nuestra función `verificarRuta()`. Podríamos preguntarnos por qué no lo hacemos como un middleware global, algo que en principio parecería lógico, pero con una salvedad. Para hacer la comparación de rutas, necesitamos tener acceso a la ruta "original" de la cual la solicitud ejecuta una "versión". En una función middleware, solo tenemos acceso a la propiedad `url` del objeto `req`, que representa la ruta que *viene* en la solicitud, pero no tenemos con qué comparar. Por eso, para Encore decidí incluir la verificación directamente en la función `verificarRuta()`, dado que en ese scope sí tenemos acceso a la ruta "real" registrada. 
 
 Veamos entonces cómo queda la función `verificarRuta()` con la nueva comparación:
 ```javascript
@@ -907,7 +994,7 @@ verificarRuta(ruta, metodo) {
 ```
 Veamos el código paso a paso. 
 
-1️⃣ En primer lugar, vamos a definir una variable de control que se encargará de indicar si hemos encontrado una ruta que coincida con lo que enviamos en la solicitud. Esa variable rutaEncontrada es una variable definida con let, dado que puede ser que se reasigne luego. 
+1️⃣ En primer lugar, vamos a definir una variable de control que se encargará de indicar si hemos encontrado una ruta que coincida con lo que enviamos en la solicitud. Esa variable `rutaEncontrada` es una variable definida con `let`, dado que puede ser que se reasigne luego. 
 
 2️⃣ La parte central de esta modificación de la función recae en el `for .. of`. La idea es iterar sobre las rutas almacenadas en el objeto `rutas` de nuestra clase `App` y realizar la comparación con la función matches(). Si las rutas coinciden, retornamos un arreglo con los datos que nos interesan: handler y middlewares y parámetros de ruta si estos últimos existen; de lo contrario, enviamos un a arreglo vacío. Es importante recalcar que, en el caso de coincidencia, la función matches() devuelve true tanto en las rutas dinámicas como en las rutas fijas. De esta manera, si estamos verificando la ruta /inicio, que no lleva parámetros de ruta, igual obtendremos true y podemos devolver los datos necesarios para utilizarlos luego. 
 
@@ -935,22 +1022,65 @@ Vamos acercándonos a lo que nos interesa que, como vemos, es el primer elemento
 ```
 El `for .. of` va a seguir iterando hasta que encuentra la ruta que coincide. Si la encuentra, devuelve un arreglo con handler, middlewares y parámetros. Si no la encuentra, la variable de control permanece con valor `false` y `verificarRuta()` devuelve lo propio. 
 
-4️⃣ Atendamos esta parte del código: 
+4️⃣ Atendamos esta parte del código:   
 ```javascript
 const params = JSON.parse(JSON.stringify(verificacion.params || []))
 ```
-Si volvemos a pensar en cómo parseamos el body de una solicitud, recordaremos que luego de parsearlo con `JSON.parse()`, creamos una propiedad `body` en el objeto `req` y asignamos el resultado del parseo a esa propiedad. En el caso de los parámetros de ruta vamos a hacer lo mismo; así, cuando escribamos el controlador, podremos hacer algo como req.params y trabajar con esos datos. 
+Si volvemos a pensar en cómo parseamos el body de una solicitud, recordaremos que luego de parsearlo con `JSON.parse()`, creamos una propiedad `body` en el objeto `req` y asignamos el resultado del parseo a esa propiedad. En el caso de los parámetros de ruta vamos a hacer lo mismo; así, cuando escribamos el controlador, podremos hacer algo como `req.params` y trabajar con esos datos. 
 
 Sin embargo, como vimos anteriormente, la función `matches()` devuelve algo que no nos resulta del todo cómodo para guardar en la propiedad `params` de `req`. Básicamente, lo que nos "molesta" es ese `[Object: null prototype]`. 
 
-💬 En JavaScript, habitualmente los objetos heredan de un prototipo, lo cual permite aplicarles métodos como `toString()` o `hasOwnProperty()`. En cambio, los objetos con `null prototype` indican que fueron creados sin prototipo y no heredan esos métodos nativos de JavaScript. Para "sortear" esta dificultad, vamos a parsear el valor de la clave `params` con `JSON.parse(JSON.stringify())`. 
+💬 En JavaScript, habitualmente los objetos heredan de un prototipo, lo cual permite aplicarles métodos como `toString()` o `hasOwnProperty()`. En cambio, los objetos con `null prototype` indican que fueron creados sin prototipo y no heredan esos métodos nativos de JavaScript. Para "sortear" esta dificultad, vamos a parsear el valor de la clave `params` con `JSON.parse(JSON.stringify())`. La secuencia es la siguiente: 
 
 - `JSON.stringify()` convierte ese objeto a un string, perdiendo la referencia al prototipo.
 - `JSON.parse()` convierte ese string a un objeto JavaScript.
 
 #### Nuevo controlador: `traerUsuario()`
+Para ver este nuevo *feature* en funcionamiento, vamos a crear un controlador. En nuestro archivo `handlers.js`, escribimos la siguiente función:
+```javascript
+async function traerUsuario(req, res) {
+    res.writeHead(200, {
+        "Content-type": "application/json"
+    })
+
+    const parametros = req.params
+    const idUsuario = parametros.id
+    const consulta = "SELECT * FROM usuarios WHERE id = ?"
+
+    try {
+        const resultado = await conexion.execute(consulta, [idUsuario])
+        if (resultado) {
+            res.end(JSON.stringify(resultado[0], null, 2))
+        } else {
+            res.end(JSON.stringify({mensaje: `No se encontró el usuario con id = ${id}.`}))
+        }
+    } catch (error) {
+        console.log(error)
+        res.end(JSON.stringify({mensaje: "No se pudo completar la solicitud."}))
+    }
+}
+```
+
+1️⃣ Lo primero que haremos es acceder a los datos que tenemos almacenados en la propiedad `params` del objeto `req`, gracias a cómo parseamos anteriormente los parámetros de ruta. 
+
+2️⃣ En segundo lugar, escribimos la consulta (con placeholders para prevenir inyecciones SQL) y envolvemos la llamada a la base de datos con un `try/catch`. 
+
+3️⃣ Si encontramos al usuario, lo enviamos en la respuesta. Si no, enviamos el mensaje correspondiente. Acá también podríamos enviar simplemente un objeto vacío. 
+
+4️⃣ Si obtenemos algún error de conexión, lo atrapamos en la rama del `catch` y lo imprimimos en consola para debuggear; al cliente le enviamos un mensaje genérico de error. 
+
+De esta manera, logramos acceder a los valores dinámicos de los parámetros de ruta, asignarlos a una propiedad del objeto `req` y disponer de ellos en la función controladora. 
 
 ### Más métodos HTTP: PUT y DELETE
+Hasta ahora hemos desarrollado endpoints con los métodos GET y POST. En los servidores reales, habitualmente es necesario eliminar o editar algún recurso. Para eso, vamos a registrar algunas rutas con estos métodos. 
+
+### Editando un registro con PUT
+En index.js, agregamos una nueva ruta:
+```
+
+```
+
+### Eliminando un registro con DELETE
 
 ### Middleware global de manejo de errores
 
