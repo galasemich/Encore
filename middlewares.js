@@ -26,9 +26,14 @@ function parsearBody(req, res, next) {
 
         const finalizarParseo = () => {
             const stream = data.join()
-            const json = JSON.parse(stream)
-            req.body = json
-            next()
+            try {
+                const json = JSON.parse(stream)
+                req.body = json
+            } catch (error) {
+                console.log("Error al parsear body:", error.message)
+            } finally {
+                next()
+            }
         }
 
         req.on("data", recibirStream)
