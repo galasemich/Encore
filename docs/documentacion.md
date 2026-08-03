@@ -1052,22 +1052,12 @@ async function traerUsuario(req, res) {
         "Content-type": "application/json"
     })
 
-    try {
-        const { id } = req.params
-    } catch (error) {
-        console.log("Error en la desestructuración:", error)
-        res.end(JSON.stringify({mensaje: "El id del usuario no es válido."}))
-    }
-    
+    const idUsuario = req.params.id
     const consulta = "SELECT * FROM usuarios WHERE id = ?"
 
     try {
         const resultado = await conexion.execute(consulta, [idUsuario])
-        if (resultado) {
-            res.end(JSON.stringify(resultado[0], null, 2))
-        } else {
-            res.end(JSON.stringify({mensaje: `No se encontró el usuario con id = ${id}.`}))
-        }
+        res.end(JSON.stringify(resultado[0], null, 2))
     } catch (error) {
         console.log("Error en función traerUsuarios:", error)
         res.end(JSON.stringify({mensaje: "No se pudo completar la solicitud."}))
@@ -1078,9 +1068,9 @@ async function traerUsuario(req, res) {
 
 1️⃣ Lo primero que haremos es acceder a los datos que tenemos almacenados en la propiedad `params` del objeto `req`, gracias a cómo parseamos anteriormente los parámetros de ruta. 
 
-2️⃣ En segundo lugar, escribimos la consulta (con placeholders para prevenir inyecciones SQL) y envolvemos la llamada a la base de datos con un `try/catch`. 
+2️⃣ En segundo lugar, escribimos la consulta y envolvemos la llamada a la base de datos con un `try/catch`. 
 
-3️⃣ Si encontramos al usuario, lo enviamos en la respuesta. Si no, enviamos el mensaje correspondiente. Acá también podríamos enviar simplemente un objeto vacío. 
+3️⃣ La función envía directamente el resultado. Si el resultado es un [] vacío, es porque el usuario no se encontró. Si no, se envía la información completa del usuario registrado en la base de datos. 
 
 4️⃣ Si obtenemos algún error de conexión, lo atrapamos en la rama del `catch` y lo imprimimos en consola para debuggear; al cliente le enviamos un mensaje genérico de error. 
 
@@ -1129,6 +1119,16 @@ async function editarUsuario(req, res) {
 Esta función es muy similar a `nuevaTarea()`. Básicamente, la función ejecuta un `for .. of` para ir actualizando las columnas que se enviaron en el body de la request. Luego, envía los mensajes correspondientes según se haya podido completar la solicitud o no. 
 
 ### Eliminando un registro con DELETE
+Ya implementamos rutas con métodos POST, GET y PUT. Solo nos queda el último: DELETE. Utilizaremos este verbo HTTP para eliminar un recurso de nuestra base da datos. Como ya veníamos haciendo, los pasos son dos: primero registramos la ruta en `index.js` y luego escribimos la función controladora. 
+
+Registramos una nueva ruta que elimina una tarea de la base de datos:
+```javascript
+app.registrarRuta("/tarea/:nombre", handlers.eliminarTarea, "DELETE")
+```
+Ahora vamos a escribir su handler:
+```javascript
+
+```
 
 ### Middleware global de manejo de errores
 
