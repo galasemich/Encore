@@ -1,6 +1,5 @@
 import http from "http"
 import { match } from "node-match-path"
-const puerto = 3000
 
 class App {
     constructor() {
@@ -46,7 +45,7 @@ class App {
         }
     }
 
-    levantarServidor() {
+    levantarServidor(puerto) {
         const servidor = http.createServer((req, res) => {
             const ejecutarRuta = () => {
                 const resultado = this.verificarRuta(req.url, req.method)
