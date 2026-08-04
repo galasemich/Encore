@@ -1,8 +1,10 @@
 {
-  "name": "proyecto mini framework",
+  "name": "encore",
+  "autho": "gala semich alvarez",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.js",
+  "files": ["main.js", "class.js", "middlewares.js"],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
@@ -19,11 +21,10 @@
     }
   },
   "type": "module",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  },
   "dependencies": {
-    "dotenv": "^17.4.2",
-    "mysql2": "^3.23.2",
-    "node-match-path": "^0.6.3",
-    "nodemon": "^3.1.14",
-    "url-pattern": "^1.0.3"
+    "node-match-path": "^0.6.3"
   }
 }
