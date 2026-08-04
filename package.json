@@ -1,6 +1,5 @@
 {
-  "name": "encore",
-  "autho": "gala semich alvarez",
+  "name": "@galasemich/encore",
   "version": "1.0.0",
   "description": "",
   "main": "main.js",
@@ -11,15 +10,8 @@
     "dev": "nodemon index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "gala semich alvarez",
   "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^11.1.3",
-      "onFail": "download"
-    }
-  },
   "type": "module",
   "devDependencies": {
     "nodemon": "^3.1.14"
