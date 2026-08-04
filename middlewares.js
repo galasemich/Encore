@@ -38,4 +38,4 @@ function parsearBody(req, res, next) {
     }
 }
 
-export default { middlewareMetodo, setearHeader, parsearBody }
+export { middlewareMetodo, setearHeader, parsearBody }
