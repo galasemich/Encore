@@ -1051,13 +1051,14 @@ levantarServidor() {
             const resultado = this.verificarRuta(req.url, req.method)
 
             if (resultado) {
-                const [ handler, middlewares, params ] = resultado // Aquí se recuperan los parámetros de ruta que trae la función que verifica.
-                req.params = params // Acá se guardan en la propiedad params del objeto req.
-                this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
-            } else {
-                res.writeHead(404)
-                res.end(JSON.stringify({mensaje: "Ruta no encontrada o mal formada (verificá ruta, verbo HTTP y handlers)."}), null, 2)
-                return
+                try {
+                    const [ handler, middlewares, params ] = resultado
+                    req.params = params
+                    this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
+                } catch (error) {
+                    console.log("Error:", error)
+                    return
+                }
             }
         }
         
@@ -1067,6 +1068,7 @@ levantarServidor() {
     servidor.listen(puerto, () => {console.log(`Servidor corriendo en ${puerto}.`)})
 }
 ```
+Añadimos otra modificación a la función. Envolvimos la desestructuación en un `try/catch` de manera que, si la desestructuración falla, imprimimos el error en consola, no lo mandamos como una respuesta.
 
 #### Nuevo controlador: `traerUsuario()`
 Para ver este nuevo *feature* en funcionamiento, vamos a crear un controlador. En nuestro archivo `handlers.js`, escribimos la siguiente función:
