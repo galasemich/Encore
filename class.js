@@ -52,13 +52,14 @@ class App {
                 const resultado = this.verificarRuta(req.url, req.method)
 
                 if (resultado) {
-                    const [ handler, middlewares, params ] = resultado
-                    req.params = params
-                    this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
-                } else {
-                    res.writeHead(404)
-                    res.end(JSON.stringify({mensaje: "Ruta no encontrada (verificá ruta o verbo HTTP)."}), null, 2)
-                    return
+                    try {
+                        const [ handler, middlewares, params ] = resultado
+                        req.params = params
+                        this.ejecutarMiddlewareDeRuta(req, res, 0, middlewares, handler)
+                    } catch (error) {
+                        console.log("Error:", error)
+                        return
+                    }
                 }
             }
             
