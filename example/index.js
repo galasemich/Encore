@@ -1,6 +1,6 @@
-import { App } from "./class.js"
+import { App, parsearBody, setearHeader, middlewareMetodo } from "encore"
 import handlers from "./handlers.js"
-import middlewares from "./middlewares.js"
+import middlewares from "../middlewares.js"
 
 const app = new App()
 

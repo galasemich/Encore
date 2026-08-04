@@ -20,6 +20,10 @@
   },
   "type": "module",
   "dependencies": {
-    "nodemon": "^3.1.14"
+    "dotenv": "^17.4.2",
+    "mysql2": "^3.23.2",
+    "node-match-path": "^0.6.3",
+    "nodemon": "^3.1.14",
+    "url-pattern": "^1.0.3"
   }
 }
