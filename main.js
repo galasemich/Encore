@@ -1,2 +1,2 @@
-export { App } from "./class"
-export { middlewareMetodo, setearHeader, parsearBody } from "./middlewares"
+export { App } from "./class.js"
+export { middlewareMetodo, setearHeader, parsearBody } from "./middlewares.js"
