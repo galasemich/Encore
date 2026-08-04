@@ -11,11 +11,6 @@ function setearHeader(req, res, next) {
     next()
 }
 
-function autenticacion(req, res, next) {
-    console.log("Usuario autenticado.")
-    next()
-}
-
 function parsearBody(req, res, next) {
     if (req.method != "GET") {
         let data = []
@@ -43,4 +38,4 @@ function parsearBody(req, res, next) {
     }
 }
 
-export default { middlewareMetodo, setearHeader, autenticacion, parsearBody }
+export default { middlewareMetodo, setearHeader, parsearBody }
