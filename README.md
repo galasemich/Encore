@@ -94,7 +94,7 @@ Encore guarda los parámetros de ruta en `req.params` como un objeto JavaScript:
 Para acceder al valor del parámetro, simplementé utilizá la notación de punto. 
 
 ## Ejemplo de servidor y documentación
-En la carpeta /examples de este repositorio pueden revisarse archivos de ejemplo (index.js, handlers.js, etc.). Esos archivos corresponden al recorrido realizado en la [documentacion](docs/documentacion.md) de este proyecto. En dicha documentación, me explayo en comentar cómo y por qué desarrollé Encore; al mismo tiempo, utilizamos Encore para crear un servidor de prueba simulando una pequeña aplicación de registro de tareas. 
+En la carpeta [/example](example) de este repositorio pueden revisarse archivos de ejemplo (index.js, handlers.js, etc.). Esos archivos corresponden al recorrido realizado en la [documentacion](docs/documentacion.md) de este proyecto. En dicha documentación, me explayo en comentar cómo y por qué desarrollé Encore; al mismo tiempo, utilizamos Encore para crear un servidor de prueba simulando una pequeña aplicación de registro de tareas. 
 
 ## Próximos pasos
 Para una segunda versión de Encore, podrían implementarse las siguientes mejoras:
