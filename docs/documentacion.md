@@ -29,7 +29,7 @@
     - [Más métodos HTTP: PUT y DELETE](#más-métodos-http-put-y-delete)
         - [Editando un registro con PUT](#editando-un-registro-con-put)
         - [Eliminando un registro con DELETE](#eliminando-un-registro-con-delete)
-7. [Séptima etapa. Publicando Encore en npm](#séptima-etapa-publicando-encore-en-npm)
+7. [Conclusión](#conclusión)
 
 ## Introducción. ¿Por qué Encore?
 El camino más sencillo para desarrollar servidores con JavaScript es recurrir a frameworks como Express.js o Nest.js. La utilidad de una librería recae en que *abstrae* muchos procesos que, si decidiéramos no usar ninguna, deberíamos realizar nosotros como desarrolladores cada vez que escribimos código backend. 
@@ -1214,8 +1214,8 @@ Como mencionaba en la introducción de este documento, *esta propuesta de framew
 
 Como ejercicio, Encore funciona más como un método de estudio y aprendizaje que como un framework "real" pero, como vimos, es perfectamente funcional. Por eso, me propongo algunos "pasos a seguir" para seguir utilizando este trabajo en futuros proyectos:
 
-1. Desarrollar una versión 2.0 de Encore
+2️⃣.0️⃣ **Desarrollar una versión 2.0 de Encore**  
 Actulmente, este pequeño framework se encuentra publicado en npm (el link al paquete se encuentra en la página principal de este repositorio). Sin embargo, planeo seguir incorporando algunas mejoras que hagan de Encore un proyecto más sólido, con más posibilidades de crecimiento. Por ejemplo, una posible y sustancial mejora para este módulo es la incorporación de una clase `Router`, como mencionamos en la segunda etapa de esta documentación, para que la creación de rutas sea un proceso más modular y más fácilmente escalable. Con un objeto `Router`, Encore podría funcionar mejor par desarrollar servidores backend más grandes y con más rutas definidas. Podría pasar de ser un proyecto más de portfolio a convertirse en una herramienta más seria y profesional. Actualmente, Encore es un framework sencillo que tiene más sentido utilizar para aplicaciones chicas que no requieran de tanta complejidad estructural. 
 
-2. Una aplicación hecha con Encore
+✅ **Una aplicación hecha con Encore**  
 Así como en desarrollo solemos utilizar frameworks como Express, perfectamente podemos utilizar Encore para construir el backend de aplicaciones web sencillas. Como próximo paso, planeo desarrollar una pequeña aplicación para temporizar sesiones Pomodoro y registrar tareas, implementando también un sencillo panel de estadísticas de uso del usuario (con datos simples como cuántas Pomodoros por mes, cuánto tiempo dedicado a la concentración profunda, posibilidad de múltiples sesiones -trabajo, estudio, tiempo libre-, etc.). 
