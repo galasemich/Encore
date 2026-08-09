@@ -2,7 +2,11 @@
 Encore es un pequeño framework para servidores backend. Si bien toma como inspiración varias de las implementaciones de Express, constituye un proyecto minimalista, de manera que tiene sus limitaciones. 
 
 ## Cómo usar Encore
-### 🟢 Importar el módulo, inicializar la aplicación y correr el servidor
+### 🟢 Instalar el módulo, inicializar la aplicación y correr el servidor
+En primer lugar, instalamos Encore con
+```bash
+npm install @galasemich/encore
+```
 En un archivo típicamente `index.js`, se debe importar la clase `App` del módulo e instanciarla:
 ```javascript
 import { App } from "@galasemich/encore"
