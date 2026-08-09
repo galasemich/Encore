@@ -42,7 +42,7 @@ import express from "express"
 const app = express()
 ```
 
-Una muy buena opción para entender esto código internamente es desarrollar un framework backend desde cero. Se trata de un ejercicio interesante porque nos obliga a pensar funcionalidades que en módulos como Express o Nest ya están perfectamente implementadas. No se trata de "reiventar la rueda", sino de entender en qué consisten específicamente esas abstracciones que Express o cualquier framework backend ya maneja. Desarrollando un framework, entenderemos mucho mejor los conceptos de ruta, solicitud, respuesta, controlador, middlewares, procesos recursivos, etc. 
+Una muy buena opción para entender este código internamente es desarrollar un framework backend desde cero. Se trata de un ejercicio interesante porque nos obliga a pensar funcionalidades que en módulos como Express o Nest ya están perfectamente implementadas. No se trata de "reiventar la rueda", sino de entender en qué consisten específicamente esas abstracciones que Express o cualquier framework backend ya maneja. Desarrollando un framework, entenderemos mucho mejor los conceptos de ruta, solicitud, respuesta, controlador, middlewares, procesos recursivos, etc. 
 
 Esta idea es comparable, un poco, a la diferencia entre saber **manejar** y saber **cómo funciona un auto**. Por supuesto que, en la mayoría de los casos, entender cómo manejar es suficiente. Pero si queremos ir más allá, nos esperan otros desafíos: podemos saber cómo hacer un cambio (análogamente, podemos saber cómo levantar un servidor en Express), pero entender *cómo funciona* la maquinaria para que el cambio se produzca efectivamente (por ejemplo, cómo se mapean las rutas, siguiendo nuestra analogía, o cómo funciona la recursión en middlewares) nos aporta un tipo de conocimiento diferente y muy valioso. Por supuesto, si vamos "para atrás" en los niveles de abstracción, podríamos preguntarnos cómo funciona el módulo `http`, cómo funciona Node, cómo está desarrollado el propio JavaScript... Esos niveles de abstracción son fascinantes pero escapan al objetivo de este proyecto. 
 
@@ -981,7 +981,11 @@ se *reconozca* como una solicitud a este endpoint:
 ```
 Como `/usuario/1` no corresponde a *ninguna* ruta almacenada en el objeto `rutas` de la clase `App`, la función verificadora no la encuentra y lanza un error 404. Para lograr que nuestro servidor reconozca `/usuario/1` como una "versión" de `/usuario/:id`, tenemos que hacer lo que se llama *pattern matching*, es decir, lograr que la función verificadora entienda que `1`, en el contexto de una ruta dinámica, no es más que un *valor* de `id`.
 
-Para realizar esta tarea, vamos a recurrir a la librería [`node-match-pattern`](https://www.npmjs.com/package/node-match-path), que se encarga de realizar justamente este trabajo. Internamente, una librería como esta funciona a partir de una expresión regular. Con la función `match()`, comparamos dos strings: el endpoint "original" y la ruta solicitada. La función siempre devuelve un objeto de este estilo:
+Para realizar esta tarea, vamos a recurrir a la librería [`node-match-pattern`](https://www.npmjs.com/package/node-match-path), que se encarga de realizar justamente este trabajo. 
+
+>Internamente, una librería como esta funciona a partir de una expresión regular. 
+
+Con la función `match()`, comparamos dos strings: el endpoint "original" y la ruta solicitada. La función siempre devuelve un objeto de este estilo: 
 ```javascript
 {
     matches: true, // O false, si las rutas no coinciden.
@@ -1005,7 +1009,7 @@ Si, por el contrario, las rutas no coinciden, obtendríamos algo así:
     params: null 
 }
 ```
-La idea es, entonces, utilizar esta funcionalidad en nuestra función `verificarRuta()`. Podríamos preguntarnos por qué no lo hacemos como un middleware global, algo que en principio parecería lógico, pero con una salvedad. Para hacer la comparación de rutas, necesitamos tener acceso a la ruta "original" de la cual la solicitud ejecuta una "versión". En una función middleware, solo tenemos acceso a la propiedad `url` del objeto `req`, que representa la ruta que *viene* en la solicitud, pero no tenemos con qué comparar. Por eso, para Encore decidí incluir la verificación directamente en la función `verificarRuta()`, dado que en ese scope sí tenemos acceso a la ruta "real" registrada. 
+La idea es, entonces, utilizar esta funcionalidad en nuestra función `verificarRuta()`. Podríamos preguntarnos por qué no lo hacemos como un middleware global, algo que en principio parecería lógico, pero para esa justificación habría que hacer una salvedad. Para hacer la comparación de rutas, necesitamos tener acceso a la ruta "original" de la cual la solicitud ejecuta una "versión". En una función middleware, solo tenemos acceso a la propiedad `url` del objeto `req`, que representa la ruta que *viene* en la solicitud, pero no tenemos con qué comparar. Por eso, para Encore decidí incluir la verificación directamente en la función `verificarRuta()`, dado que en ese scope sí tenemos acceso a la ruta "real" registrada. 
 
 Veamos entonces cómo queda la función `verificarRuta()` con la nueva comparación:
 ```javascript
@@ -1039,9 +1043,9 @@ Veamos el código paso a paso.
 
 1️⃣ En primer lugar, vamos a definir una variable de control que se encargará de indicar si hemos encontrado una ruta que coincida con lo que enviamos en la solicitud. Esa variable `rutaEncontrada` es una variable definida con `let`, dado que puede ser que se reasigne luego. 
 
-2️⃣ La parte central de esta modificación de la función recae en el `for .. of`. La idea es iterar sobre las rutas almacenadas en el objeto `rutas` de nuestra clase `App` y realizar la comparación con la función matches(). Si las rutas coinciden, retornamos un arreglo con los datos que nos interesan: handler y middlewares y parámetros de ruta si estos últimos existen; de lo contrario, enviamos un a arreglo vacío. Es importante recalcar que, en el caso de coincidencia, la función matches() devuelve true tanto en las rutas dinámicas como en las rutas fijas. De esta manera, si estamos verificando la ruta /inicio, que no lleva parámetros de ruta, igual obtendremos true y podemos devolver los datos necesarios para utilizarlos luego. 
+2️⃣ La parte central de esta modificación de la función recae en el `for .. of`. La idea es iterar sobre las rutas almacenadas en el objeto `rutas` de nuestra clase `App` y realizar la comparación con la función `matches()`. Si las rutas coinciden, retornamos un arreglo con los datos que nos interesan: handler y middlewares y parámetros de ruta si estos últimos existen; de lo contrario, enviamos un a arreglo vacío. Es importante recalcar que, en el caso de coincidencia, la función `matches()` devuelve `true` tanto en las rutas dinámicas como en las rutas fijas. De esta manera, si estamos verificando la ruta `/inicio`, que no lleva parámetros de ruta, igual obtendremos `true` y podemos devolver los datos necesarios para utilizarlos luego. 
 
-3️⃣ Dado que no podemos iterar sobre un objeto como podemos iterar sobre un arreglo, vamos a utilizar la función Object.entries(), nativa de JavaScript, que convierte las "entradas" de un objeto a una arreglo. Tendremos entonces un arreglo compuesto por las claves y los valores de ese objeto. 
+3️⃣ Dado que no podemos iterar sobre un objeto como podemos iterar sobre un arreglo, vamos a utilizar la función `Object.entries()`, nativa de JavaScript, que convierte las "entradas" de un objeto a una arreglo. Tendremos entonces un arreglo compuesto por las claves y los valores de ese objeto. 
 
 La primera iteración toma la primera entrada de nuestro objeto, que es el método GET. Obtenemos lo siguiente:
 ```bash
@@ -1073,12 +1077,12 @@ Si volvemos a pensar en cómo parseamos el body de una solicitud, recordaremos q
 
 Sin embargo, como vimos anteriormente, la función `matches()` devuelve algo que no nos resulta del todo cómodo para guardar en la propiedad `params` de `req`. Básicamente, lo que nos "molesta" es ese `[Object: null prototype]`. 
 
-💬 En JavaScript, habitualmente los objetos heredan de un prototipo, lo cual permite aplicarles métodos como `toString()` o `hasOwnProperty()`. En cambio, los objetos con `null prototype` indican que fueron creados sin prototipo y no heredan esos métodos nativos de JavaScript. Para "sortear" esta dificultad, vamos a parsear el valor de la clave `params` con `JSON.parse(JSON.stringify())`. La secuencia es la siguiente: 
+>En JavaScript, habitualmente los objetos heredan de un prototipo, lo cual permite aplicarles métodos como `toString()` o `hasOwnProperty()`. >En cambio, los objetos con `null prototype` indican que fueron creados sin prototipo y no heredan esos métodos nativos de JavaScript. Para >"sortear" esta dificultad, vamos a parsear el valor de la clave `params` con `JSON.parse(JSON.stringify())`. La secuencia es la siguiente: 
+>
+>- `JSON.stringify()` convierte ese objeto a un string, perdiendo la referencia al prototipo.
+>- `JSON.parse()` convierte ese string a un objeto JavaScript.
 
-- `JSON.stringify()` convierte ese objeto a un string, perdiendo la referencia al prototipo.
-- `JSON.parse()` convierte ese string a un objeto JavaScript.
-
-Ahora, lo que queda por añadir a la función levantarServidor() es una línea que agrega los parámetros de ruta al objeto req.params, así:
+Ahora, lo que queda por añadir a la función `levantarServidor()` es una línea que agrega los parámetros de ruta al objeto `req.params`, así:
 ```javascript
 levantarServidor() {
     const servidor = http.createServer((req, res) => {
@@ -1131,7 +1135,7 @@ async function traerUsuario(req, res) {
 
 2️⃣ En segundo lugar, escribimos la consulta y envolvemos la llamada a la base de datos con un `try/catch`. 
 
-3️⃣ La función envía directamente el resultado. Si el resultado es un [] vacío, es porque el usuario no se encontró. Si no, se envía la información completa del usuario registrado en la base de datos. 
+3️⃣ La función envía directamente el resultado. Si el resultado es un `[]` vacío, es porque el usuario no se encontró. Si no, se envía la información completa del usuario registrado en la base de datos. 
 
 4️⃣ Si obtenemos algún error de conexión, lo atrapamos en la rama del `catch` y lo imprimimos en consola para debuggear; al cliente le enviamos un mensaje genérico de error. 
 
@@ -1145,7 +1149,7 @@ En `index.js`, agregamos una nueva ruta:
 ```javascript
 app.registrarRuta("/usuario/:id", handlers.editarUsuario, "PUT")
 ```
-Esta ruta nos permitirá, entonces, editar la información de un usuario. Vamos a enviar las categorías a actualizar en el body de la request. 
+Esta ruta nos permitirá editar la información de un usuario. Vamos a enviar las categorías a actualizar en el body de la request. 
 
 Ahora vamos a implementar el controlador que se ejecuta con este endpoint. En el archivo `handlers.js`, escribimos esta función:
 ```javascript
@@ -1202,3 +1206,16 @@ async function eliminarTarea(req, res) {
 }
 ```
 La función sigue la estructura que veníamos manteniendo en las demás funciones. Toma el id de los parámetros de ruta y elimina el registro que coincida con ese id. 
+
+## Conclusión
+A lo largo de esta documentación describí el proceso prácticamente entero de desarrollar un framework simple y minimalista para levantar servidores backend. Al mismo tiempo, incluí ejemplos concretos de uso y desarrollamos un pequeño servidor de prueba simulando una aplicación de registro de tareas. 
+
+Como mencionaba en la introducción de este documento, *esta propuesta de framework no es ni la mejor ni la única solución posible*, y seguramente tenga muchas mejoras para pensar y llevar a cabo. A pesar de esto, de igual forma se trata de un ejercicio sumamente útil para entender qué es un servidor backend, cómo funciona y, además, también se trató de una experiencia muy fructífera para entender procesos recursivos no solo del módulo http, como por ejemplo la ejecución del callback de la función `createServer()`, sino de todo JavaScript. Como lenguaje de programación dirigido por eventos, entender qué es un evento, cómo funciona y por qué es un cambio de paradigma importante si lo comparamos, por ejemplo, con Python, termina resultando fundamental porque nos permite sacarle muchísimo provecho a un lenguaje de programación lleno de posibilidades. 
+
+Como ejercicio, Encore funciona más como un método de estudio y aprendizaje que como un framework "real" pero, como vimos, es perfectamente funcional. Por eso, me propongo algunos "pasos a seguir" para seguir utilizando este trabajo en futuros proyectos:
+
+1. Desarrollar una versión 2.0 de Encore
+Actulmente, este pequeño framework se encuentra publicado en npm (el link al paquete se encuentra en la página principal de este repositorio). Sin embargo, planeo seguir incorporando algunas mejoras que hagan de Encore un proyecto más sólido, con más posibilidades de crecimiento. Por ejemplo, una posible y sustancial mejora para este módulo es la incorporación de una clase `Router`, como mencionamos en la segunda etapa de esta documentación, para que la creación de rutas sea un proceso más modular y más fácilmente escalable. Con un objeto `Router`, Encore podría funcionar mejor par desarrollar servidores backend más grandes y con más rutas definidas. Podría pasar de ser un proyecto más de portfolio a convertirse en una herramienta más seria y profesional. Actualmente, Encore es un framework sencillo que tiene más sentido utilizar para aplicaciones chicas que no requieran de tanta complejidad estructural. 
+
+2. Una aplicación hecha con Encore
+Así como en desarrollo solemos utilizar frameworks como Express, perfectamente podemos utilizar Encore para construir el backend de aplicaciones web sencillas. Como próximo paso, planeo desarrollar una pequeña aplicación para temporizar sesiones Pomodoro y registrar tareas, implementando también un sencillo panel de estadísticas de uso del usuario (con datos simples como cuántas Pomodoros por mes, cuánto tiempo dedicado a la concentración profunda, posibilidad de múltiples sesiones -trabajo, estudio, tiempo libre-, etc.). 
